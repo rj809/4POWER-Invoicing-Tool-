@@ -504,6 +504,8 @@ function rmCat(i){catalogue.splice(i,1);save('cat',catalogue);renderCat();render
 const BRIDGE='https://launch4power.app.n8n.cloud/webhook/bigin-bridge';
 let liveCompanies=[];   // last deduped live search results
 let activeBiginId='';   // Bigin account id of the picked customer
+let activeDealId='';    // Bigin deal id of the linked deal (Phase 3 write-back)
+let activeDeal=null;    // {id,name,stage,pipeline,...} of the linked deal
 let custSrch=null;      // debounce handle
 
 function setStatus(msg,kind){ // kind: '' | 'live' | 'warn'
@@ -629,6 +631,7 @@ function pickContact(){
   syncForm();recompute();
 }
 async function loadDeals(id){
+  activeDealId='';activeDeal=null;
   try{
     const res=await bridge({action:'list_deals',id});
     const dw=document.getElementById('dealWrap');const ds=document.getElementById('dealSel');
@@ -642,8 +645,10 @@ async function loadDeals(id){
 }
 function pickDeal(){
   const ds=document.getElementById('dealSel');const i=parseInt(ds.value);
-  if(!(i>=0)||!ds._list)return;
-  inv.ourRef=ds._list[i].ourRef||'';   // Our Ref only — never the customer's Your Ref
+  if(!(i>=0)||!ds._list){activeDealId='';activeDeal=null;return}
+  const d=ds._list[i];
+  activeDeal=d;activeDealId=d.id||'';
+  inv.ourRef=d.ourRef||'';   // Our Ref only — never the customer's Your Ref
   syncForm();recompute();
 }
 
@@ -665,8 +670,34 @@ function saveJSON(){const blob=new Blob([JSON.stringify(inv,null,2)],{type:'appl
   a.download=(inv.docNumber||inv.mode)+'.json';a.click()}
 function loadJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();
   r.onload=()=>{try{inv=JSON.parse(r.result);setMode(inv.mode||'proforma');renderItems();syncForm();recompute()}catch(err){alert('Could not read file.')}};r.readAsText(f);e.target.value=''}
-function logToBigin(){
-  alert('Bigin logging is wired in Phase 3.\n\nThis button will:\n• attach the PDF to the selected Bigin deal\n• move it '+(inv.mode==='proforma'?'from Enquiries → Orders : Order Received':'to Payment Outstanding')+'\n\nvia your n8n bridge.');
+async function logToBigin(){
+  if(!activeDealId){
+    alert('Link a Bigin deal first.\n\nSearch the customer, pick a live result, then choose the deal under “Link a Bigin deal”. The selected deal is the record that will be moved.');
+    return;
+  }
+  const target=inv.mode==='proforma'
+    ? {pipeline:'Orders',stage:'Order Received'}
+    : {pipeline:'Orders',stage:'Payment Outstanding'};
+  const dn=(activeDeal&&activeDeal.name)||'this deal';
+  const from=(activeDeal&&activeDeal.pipeline&&activeDeal.stage)?(activeDeal.pipeline+' : '+activeDeal.stage):'its current stage';
+  if(!confirm('Move Bigin deal\n\n“'+dn+'”\n\nfrom  '+from+'\nto    '+target.pipeline+' : '+target.stage+'\n\nProceed? This updates the record in Bigin.')) return;
+  const btn=document.getElementById('logBtn');const label=btn.textContent;
+  btn.disabled=true;btn.textContent='Moving in Bigin…';
+  try{
+    const res=await bridge({action:'move_deal',id:activeDealId,pipeline:target.pipeline,stage:target.stage});
+    if(res&&res.ok){
+      if(activeDeal){activeDeal.pipeline=target.pipeline;activeDeal.stage=target.stage;}
+      btn.textContent='Moved → '+target.stage+' ✓';
+      setTimeout(()=>{btn.disabled=false;btn.textContent=label;},2500);
+      alert('Done. “'+dn+'” moved to '+target.pipeline+' : '+target.stage+' in Bigin.');
+    }else{
+      btn.disabled=false;btn.textContent=label;
+      alert('Bigin did not confirm the move'+(res&&res.message?(':\n'+res.message):'.')+'\n\nThe record was not changed. Check the deal link and try again.');
+    }
+  }catch(e){
+    btn.disabled=false;btn.textContent=label;
+    alert('Could not reach the Bigin bridge.\n\n'+(e&&e.message?e.message:'')+'\n\nCheck your connection and try again.');
+  }
 }
 
 /* ---------- init ---------- */
