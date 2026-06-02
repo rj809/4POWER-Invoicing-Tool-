@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4POWER · Invoice Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Raleway:wght@300;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0B1C3E; --navy-mid:#1E2B45; --lime:#A3E635; --teal:#0FB39A;
+  --blue:#1478DC; --blue-h:#0F62BB; --emerald:#10B981;
+  --s1:#F5F4F0; --s2:#EDECE7; --s3:#E2E0D8; --white:#fff;
+  --tx:#0B1C3E; --tx2:#4A5568; --mut:#8A93A2; --bd:#D8D6CE; --bds:#E8E6DF;
+  --r:8px; --disp:'Raleway',sans-serif; --body:'Manrope',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--body);background:var(--s2);color:var(--tx);font-size:14px;line-height:1.45}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:18px;
+  background:var(--navy);color:#fff;padding:12px 22px;box-shadow:0 1px 0 rgba(0,0,0,.2)}
+.topbar .brand{display:flex;align-items:center;gap:12px}
+.topbar .brand svg{height:30px;width:auto;display:block}
+.topbar .ttl{font-family:var(--disp);font-weight:300;font-size:15px;letter-spacing:.02em;opacity:.85}
+.topbar .ttl b{font-weight:800}
+.modewrap{margin-left:8px;display:inline-flex;background:rgba(255,255,255,.08);border-radius:30px;padding:3px}
+.modewrap button{border:0;background:transparent;color:#cdd6e6;padding:7px 16px;border-radius:30px;
+  font-weight:600;font-size:12.5px;cursor:pointer;transition:.15s}
+.modewrap button.on{background:var(--lime);color:var(--navy)}
+.acts{margin-left:auto;display:flex;gap:9px}
+.btn{border:0;border-radius:var(--r);padding:9px 15px;font-weight:600;font-size:13px;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:var(--blue-h)}
+.btn-g{background:var(--emerald);color:#fff}.btn-g:hover{filter:brightness(.94)}
+.btn-s{background:transparent;color:#dfe6f2;border:1.5px solid rgba(255,255,255,.28)}.btn-s:hover{border-color:#fff}
+
+.layout{display:grid;grid-template-columns:430px 1fr;gap:0;height:calc(100vh - 56px)}
+.controls{overflow-y:auto;padding:22px 22px 80px;background:var(--s1);border-right:1px solid var(--bd)}
+.stage{overflow-y:auto;padding:34px;background:var(--s2);display:flex;justify-content:center}
+
+.eyebrow{font-family:var(--body);font-weight:700;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin:22px 0 9px}
+.eyebrow:first-child{margin-top:0}
+.fld{margin-bottom:11px}
+.fld label{display:block;font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:4px;letter-spacing:.01em}
+.fld input,.fld select,.fld textarea{width:100%;border:1.5px solid var(--bd);border-radius:7px;padding:8px 10px;background:#fff;transition:.12s}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue) inset;box-shadow:0 0 0 3px rgba(20,120,220,.12)}
+.fld textarea{resize:vertical;min-height:64px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.row2 .fld{margin-bottom:0}
+.hint{font-size:10.5px;color:var(--mut);margin-top:3px}
+
+.items{margin-top:6px}
+.itrow{background:#fff;border:1px solid var(--bd);border-radius:9px;padding:11px;margin-bottom:9px;position:relative}
+.itrow .top{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.itrow .top .num{width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.itrow .top select{flex:1}
+.itrow .rm{border:0;background:var(--s2);color:var(--tx2);width:24px;height:24px;border-radius:6px;cursor:pointer;font-size:15px;line-height:1;flex-shrink:0}
+.itrow .rm:hover{background:#FEE2E2;color:#DC2626}
+.itrow .grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.itrow .grid .fld{margin-bottom:0}
+.itrow .grid .full{grid-column:1/3}
+.itrow input,.itrow select{padding:6px 8px;font-size:12.5px}
+.itrow .lbl{font-size:10px}
+.additm{width:100%;border:1.5px dashed var(--bd);background:#fff;color:var(--blue);border-radius:8px;padding:10px;font-weight:600;cursor:pointer;transition:.12s}
+.additm:hover{border-color:var(--blue);background:var(--s1)}
+
+details.cat{margin-top:14px;border:1px solid var(--bd);border-radius:9px;background:#fff;padding:0 12px}
+details.cat summary{cursor:pointer;font-weight:700;font-size:12px;padding:11px 0;color:var(--tx);list-style:none}
+details.cat summary::-webkit-details-marker{display:none}
+details.cat summary::before{content:'▸ ';color:var(--blue)}
+details.cat[open] summary::before{content:'▾ '}
+.catrow{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px 0;border-top:1px solid var(--bds)}
+.catrow input{padding:5px 7px;font-size:11.5px}
+.catrow .x{grid-column:1/3;text-align:right}
+.catrow .x button{border:0;background:none;color:#DC2626;cursor:pointer;font-size:11px}
+.miniadd{margin:8px 0 12px;border:0;background:var(--s2);border-radius:6px;padding:7px 12px;font-weight:600;cursor:pointer;font-size:12px}
+
+/* ---------- INVOICE SHEET (print target) ---------- */
+.sheet{width:794px;min-height:1123px;background:#fff;box-shadow:0 6px 30px rgba(11,28,62,.12);
+  padding:46px 46px 0;display:flex;flex-direction:column;font-size:11px;color:var(--navy)}
+.sheet .hd{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px}
+.sheet .hd svg{height:46px;width:auto}
+.sheet .doctitle{font-family:var(--disp);font-weight:300;font-size:30px;color:var(--navy);text-align:right;line-height:1}
+.sheet .doctitle b{font-weight:900;display:block}
+.limekey{height:3px;background:var(--lime);margin:0 0 16px}
+.sheet .meta{display:grid;grid-template-columns:1.25fr 1fr;gap:30px;padding-bottom:14px}
+.sheet .co{font-size:10.5px;color:var(--tx2);line-height:1.55}
+.sheet .co .nm{font-weight:700;color:var(--navy);font-size:11.5px;margin-bottom:2px}
+.mtbl{width:100%;border-collapse:collapse}
+.mtbl td{padding:2.5px 0;font-size:10.5px;vertical-align:top}
+.mtbl td.k{color:var(--tx2);font-weight:600;width:48%}
+.mtbl td.v{text-align:right;font-weight:600;color:var(--navy)}
+.addrs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;padding:14px 0 18px;border-top:1px solid var(--bds)}
+.addrs .bx .h{font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);margin-bottom:5px}
+.addrs .bx .nm{font-weight:700;font-size:11px}
+.addrs .bx .ln{color:var(--tx2);font-size:10.5px;line-height:1.5;white-space:pre-line}
+.addrs .right .mtbl td{padding:2px 0}
+
+table.lines{width:100%;border-collapse:collapse;margin-top:2px}
+table.lines thead th{background:var(--navy);color:#fff;font-family:var(--body);font-weight:600;font-size:8.6px;
+  text-transform:uppercase;letter-spacing:.02em;padding:8px 6px;text-align:right;vertical-align:middle}
+table.lines thead th.l{text-align:left}
+table.lines tbody td{padding:8px 6px;font-size:10px;border-bottom:1px solid var(--bds);text-align:right;vertical-align:top}
+table.lines tbody td.l{text-align:left}
+table.lines tbody td.desc{font-weight:600}
+table.lines tbody tr.blank td{height:22px}
+.col-no{width:26px}.col-hsn{width:62px}.col-qty{width:34px}
+
+.totwrap{display:grid;grid-template-columns:1.15fr 1fr;gap:22px;margin-top:16px}
+.aiw .band{background:var(--navy);color:#fff;font-weight:700;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;padding:7px 11px;border-radius:6px 6px 0 0}
+.aiw .body{border:1px solid var(--bds);border-top:0;border-radius:0 0 6px 6px;padding:9px 11px}
+.aiw .body .r{display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:10px}
+.aiw .body .r .k{color:var(--tx2);font-weight:600}
+.aiw .body .r .v{text-align:right;color:var(--navy);max-width:62%}
+.sums table{width:100%;border-collapse:collapse}
+.sums th{font-size:8.5px;text-transform:uppercase;letter-spacing:.04em;color:#fff;background:var(--navy);padding:6px 8px;text-align:right}
+.sums th.l{text-align:left;background:transparent;color:var(--tx2)}
+.sums td{padding:6px 8px;font-size:10.5px;text-align:right;border-bottom:1px solid var(--bds)}
+.sums td.k{text-align:left;color:var(--tx2);font-weight:600}
+.sums tr.tot td{background:var(--lime);color:var(--navy);font-weight:800;border:0}
+.sums tr.tot td .u{font-weight:400;font-size:9px;color:var(--navy);opacity:.8;margin-right:2px}
+.sums .val{font-family:var(--disp);font-weight:800}
+
+.decl{margin-top:16px;background:var(--s1);border-radius:7px;padding:11px 13px}
+.decl .h{font-weight:700;font-size:10px;margin-bottom:3px}
+.decl p{font-size:9.8px;color:var(--tx2);line-height:1.5}
+.remit{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.remit .h{font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);margin-bottom:5px}
+.remit .bank{font-size:10px;color:var(--tx2);line-height:1.6}
+.remit .bank b{color:var(--navy)}
+.foot{margin:20px -46px 0;background:var(--navy);color:#cdd6e6;padding:22px 46px;border-radius:0;
+  display:flex;flex-direction:column;gap:5px}
+.foot .ty{font-family:var(--disp);font-weight:300;font-size:17px;color:#fff;margin-bottom:6px}
+.foot .ty b{font-weight:800}
+.foot svg{height:24px;width:auto;margin-top:8px;opacity:.95}
+.foot .lg{font-size:9px;line-height:1.6}
+
+.empty-note{font-size:10.5px;color:var(--mut);font-style:italic}
+
+@media print{
+  @page{size:A4;margin:0}
+  body{background:#fff}
+  .topbar,.controls{display:none!important}
+  .layout{display:block;height:auto}
+  .stage{padding:0;overflow:visible;background:#fff;display:block}
+  .sheet{width:auto;min-height:auto;box-shadow:none;padding:10mm 13mm 0;font-size:10.3px}
+  .foot{margin:12px -13mm 0;padding:15px 13mm}
+  .totwrap{margin-top:11px}.decl{margin-top:11px}.remit{margin-top:9px}
+  table.lines thead{display:table-header-group}
+  table.lines tr{break-inside:avoid}
+  .totwrap,.decl,.remit{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 268 52" fill="none"><defs><linearGradient id="gd" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0FB39A"/><stop offset="1" stop-color="#A3E635"/></linearGradient></defs><path fill="url(#gd)" d="M0.628784 38.0125C0.628784 36.422 1.91806 35.1328 3.50851 35.1328H28.6033C30.1935 35.1328 31.483 36.422 31.483 38.0125V49.1199C31.483 50.7104 30.1935 51.9996 28.6033 51.9996H3.50851C1.91806 51.9996 0.628784 50.7104 0.628784 49.1199V38.0125Z"></path><path fill="url(#gd)" d="M35.7194 2.87972C35.7194 1.28928 37.0085 0 38.599 0H49.7064C51.297 0 52.5865 1.28928 52.5865 2.87972V28.0567C52.5865 29.6473 51.297 30.9364 49.7064 30.9364H38.599C37.0085 30.9364 35.7194 29.6473 35.7194 28.0567V2.87972Z"></path><path fill="url(#gd)" d="M2.71462 30.9364C0.882087 30.9364 -0.0356463 28.7208 1.26015 27.4251L27.971 0.71401C29.2671 -0.581789 31.4827 0.335944 31.4827 2.16848V28.8794C31.4827 30.0154 30.5616 30.9364 29.4257 30.9364H2.71462Z"></path><path fill="url(#gd)" d="M44.1528 51.9978C48.8105 51.9978 52.5863 48.222 52.5863 43.5643C52.5863 38.9066 48.8105 35.1309 44.1528 35.1309C39.4951 35.1309 35.7194 38.9066 35.7194 43.5643C35.7194 48.222 39.4951 51.9978 44.1528 51.9978Z"></path><path fill="#FFFFFF" d="M95.5197 30.5957C96.0313 30.5957 96.4463 31.0111 96.4463 31.5236V35.3776C96.4463 35.89 96.0313 36.3055 95.5197 36.3055H94.0189C93.5068 36.3055 93.0922 36.7209 93.0922 37.2333V40.686C93.0922 41.1985 92.6772 41.6139 92.1652 41.6139H87.802C87.29 41.6139 86.875 41.1985 86.875 40.686V37.2333C86.875 36.7209 86.46 36.3055 85.9484 36.3055H72.9978C72.4862 36.3055 72.0712 35.89 72.0712 35.3776V30.8212C72.0712 30.6732 72.1064 30.5273 72.1744 30.3954L82.2332 10.8909C82.392 10.5825 82.71 10.3887 83.0566 10.3887H87.5927C88.2863 10.3887 88.7345 11.1232 88.4173 11.7407L79.4293 29.2437C79.1122 29.8615 79.5604 30.5957 80.2536 30.5957H85.9484C86.46 30.5957 86.875 30.1803 86.875 29.6678V24.1189C86.875 23.6065 87.29 23.1911 87.802 23.1911H92.1652C92.6772 23.1911 93.0922 23.6065 93.0922 24.1189V29.6678C93.0922 30.1803 93.5068 30.5957 94.0189 30.5957H95.5197Z"></path><path fill="#FFFFFF" d="M113.222 10.3887C116.234 10.3887 118.768 11.3998 120.826 13.422C122.883 15.4442 123.912 17.9273 123.912 20.8714C123.912 23.8155 122.883 26.2989 120.826 28.3208C118.768 30.3432 116.234 31.354 113.222 31.354H108.648C108.136 31.354 107.721 31.7694 107.721 32.2818V40.686C107.721 41.1985 107.306 41.6139 106.794 41.6139H102.476C101.964 41.6139 101.549 41.1985 101.549 40.686V11.3165C101.549 10.8041 101.964 10.3887 102.476 10.3887H113.222ZM113.222 25.5999C114.534 25.5999 115.623 25.1538 116.487 24.2616C117.352 23.3395 117.784 22.2097 117.784 20.8714C117.784 19.5034 117.352 18.3734 116.487 17.4813C115.623 16.5891 114.534 16.143 113.222 16.143H108.648C108.136 16.143 107.721 16.5584 107.721 17.0709V24.672C107.721 25.1844 108.136 25.5999 108.648 25.5999H113.222Z"></path><path fill="#FFFFFF" d="M155.619 37.5541C152.459 40.6764 148.612 42.2378 144.08 42.2378C139.548 42.2378 135.701 40.6764 132.541 37.5541C129.41 34.402 127.844 30.5508 127.844 26.0007C127.844 21.4509 129.41 17.6146 132.541 14.4921C135.701 11.3398 139.548 9.76367 144.08 9.76367C148.612 9.76367 152.459 11.3398 155.619 14.4921C158.779 17.6146 160.36 21.4509 160.36 26.0007C160.36 30.5508 158.779 34.402 155.619 37.5541ZM136.879 33.3609C138.817 35.2643 141.217 36.2158 144.08 36.2158C146.942 36.2158 149.343 35.2643 151.281 33.3609C153.219 31.4281 154.188 28.9746 154.188 26.0007C154.188 23.0268 153.219 20.5735 151.281 18.6405C149.343 16.7076 146.942 15.7411 144.08 15.7411C141.217 15.7411 138.817 16.7076 136.879 18.6405C134.941 20.5735 133.972 23.0268 133.972 26.0007C133.972 28.9746 134.941 31.4281 136.879 33.3609Z"></path><path fill="#FFFFFF" d="M172.099 41.6139C171.684 41.6139 171.319 41.3374 171.206 40.9369L162.961 11.5675C162.795 10.9757 163.239 10.3887 163.854 10.3887H168.398C168.82 10.3887 169.189 10.6745 169.295 11.0838L174.25 30.2221C174.487 31.1384 175.782 31.1525 176.039 30.2412L181.448 11.0644C181.561 10.6647 181.925 10.3887 182.34 10.3887H186.216C186.63 10.3887 186.994 10.6639 187.108 11.0628L192.558 30.2545C192.816 31.1645 194.11 31.1492 194.347 30.2338L199.304 11.0838C199.41 10.6745 199.779 10.3887 200.201 10.3887H204.746C205.36 10.3887 205.804 10.9757 205.638 11.5675L197.393 40.9369C197.281 41.3374 196.916 41.6139 196.501 41.6139H190.88C190.466 41.6139 190.103 41.3399 189.989 40.9419L185.172 24.1272C184.915 23.2305 183.645 23.2317 183.389 24.1293L178.61 40.9402C178.497 41.3386 178.133 41.6139 177.718 41.6139H172.099Z"></path><path fill="#FFFFFF" d="M217.286 34.798C217.286 35.3104 217.701 35.7259 218.213 35.7259H229.553C230.065 35.7259 230.48 36.1413 230.48 36.6537V40.686C230.48 41.1985 230.065 41.6139 229.553 41.6139H212.041C211.529 41.6139 211.114 41.1985 211.114 40.686V11.3165C211.114 10.8041 211.529 10.3887 212.041 10.3887H229.329C229.841 10.3887 230.256 10.8041 230.256 11.3165V15.349C230.256 15.8615 229.841 16.2769 229.329 16.2769H218.213C217.701 16.2769 217.286 16.6923 217.286 17.2047V21.9954C217.286 22.5078 217.701 22.9233 218.213 22.9233H228.211C228.723 22.9233 229.138 23.3387 229.138 23.8511V27.7943C229.138 28.3067 228.723 28.7222 228.211 28.7222H218.213C217.701 28.7222 217.286 29.1376 217.286 29.65V34.798Z"></path><path fill="#FFFFFF" d="M254.103 41.6139C253.773 41.6139 253.468 41.4385 253.302 41.1529L247.532 31.235C247.366 30.9498 247.061 30.7744 246.731 30.7744H243.495C242.983 30.7744 242.568 31.1898 242.568 31.7022V40.686C242.568 41.1985 242.153 41.6139 241.641 41.6139H237.323C236.81 41.6139 236.396 41.1985 236.396 40.686V11.3165C236.396 10.8041 236.81 10.3887 237.323 10.3887H248.919C251.811 10.3887 254.271 11.3998 256.298 13.422C258.326 15.4442 259.34 17.8827 259.34 20.7376C259.34 22.6708 258.788 24.4697 257.685 26.1351C256.773 27.4867 255.617 28.5646 254.216 29.3677C253.74 29.6413 253.545 30.2499 253.824 30.7242L259.411 40.2151C259.775 40.8336 259.33 41.6139 258.612 41.6139H254.103ZM243.495 16.143C242.983 16.143 242.568 16.5584 242.568 17.0709V24.449C242.568 24.9614 242.983 25.3768 243.495 25.3768H248.919C250.082 25.3768 251.08 24.9307 251.915 24.0385C252.75 23.1169 253.168 22.0165 253.168 20.7376C253.168 19.4588 252.75 18.3734 251.915 17.4813C251.08 16.5891 250.082 16.143 248.919 16.143H243.495Z"></path></svg><span class="ttl">Invoice <b>Generator</b></span></div>
+  <div class="modewrap">
+    <button id="mProf" class="on" onclick="setMode('proforma')">Proforma</button>
+    <button id="mComm" onclick="setMode('commercial')">Commercial</button>
+  </div>
+  <div class="acts">
+    <button class="btn btn-s" onclick="newDoc()">New</button>
+    <button class="btn btn-s" onclick="saveJSON()">Save .json</button>
+    <button class="btn btn-s" onclick="document.getElementById('loadf').click()">Load .json</button>
+    <input id="loadf" type="file" accept="application/json" style="display:none" onchange="loadJSON(event)">
+    <button class="btn btn-g" id="logBtn" onclick="logToBigin()">Log to Bigin</button>
+    <button class="btn btn-p" onclick="window.print()">Print / Save PDF</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- ============ CONTROLS ============ -->
+  <div class="controls">
+    <div class="eyebrow">Document</div>
+    <div class="row2">
+      <div class="fld"><label id="lblTitle">Document Title</label><input id="docTitle"></div>
+      <div class="fld"><label id="lblNum">Reference No.</label><input id="docNumber" placeholder="Type reference"></div>
+    </div>
+    <div class="row2">
+      <div class="fld"><label>Date of Invoice</label><input id="dateInvoice" type="date"></div>
+      <div class="fld"><label>Date of Supply</label><input id="dateSupply" type="date"></div>
+    </div>
+    <div class="row2">
+      <div class="fld"><label>Our Reference</label><input id="ourRef" placeholder="—"></div>
+      <div class="fld"><label>Project Name</label><input id="project" placeholder="Cash Deposit Machine"></div>
+    </div>
+
+    <div class="eyebrow">Customer</div>
+    <div class="fld">
+      <label>Select customer</label>
+      <select id="custSel" onchange="pickCustomer()"></select>
+      <div class="hint">Phase 2 will pull this list live from Bigin.</div>
+    </div>
+    <div class="row2">
+      <div class="fld"><label>Customer ID</label><input id="custId" placeholder="—"></div>
+      <div class="fld"><label>Attention</label><input id="attention" placeholder="—"></div>
+    </div>
+    <div class="row2">
+      <div class="fld"><label>Your Reference</label><input id="yourRef" placeholder="—"></div>
+      <div class="fld"><label>PO Number</label><input id="poNumber" placeholder="—"></div>
+    </div>
+    <div class="fld"><label>Bill To (name)</label><input id="billName"></div>
+    <div class="fld"><label>Bill To (address)</label><textarea id="billAddr"></textarea></div>
+    <div class="fld"><label>Deliver To (name)</label><input id="delName"></div>
+    <div class="fld"><label>Deliver To (address)</label><textarea id="delAddr"></textarea></div>
+
+    <div class="eyebrow">Terms &amp; settings</div>
+    <div class="row2">
+      <div class="fld"><label>Payment Terms</label>
+        <select id="terms" onchange="recompute()">
+          <option>Advance</option><option>Net 15</option><option selected>Net 30</option>
+          <option>Net 45</option><option>Net 60</option><option>Net 90</option>
+        </select>
+      </div>
+      <div class="fld"><label>Due Date (auto)</label><input id="dueDate" readonly style="background:var(--s2)"></div>
+    </div>
+    <div class="row2">
+      <div class="fld"><label>Declaration</label>
+        <select id="decl" onchange="recompute()">
+          <option value="export" selected>Export — zero-rated</option>
+          <option value="domestic">Domestic — 5% VAT</option>
+        </select>
+      </div>
+      <div class="fld"><label>USD → AED rate</label><input id="rate" type="number" step="0.0001" value="3.6725" oninput="recompute()"></div>
+    </div>
+    <div class="fld"><label>Remit account shown</label>
+      <select id="remit" onchange="recompute()">
+        <option value="both" selected>FAB — AED &amp; USD</option>
+        <option value="aed">FAB — AED only</option>
+        <option value="usd">FAB — USD only</option>
+      </select>
+    </div>
+
+    <div class="eyebrow">Line items</div>
+    <div class="items" id="items"></div>
+    <button class="additm" onclick="addItem()">+ Add line item</button>
+
+    <details class="cat">
+      <summary>Manage product catalogue</summary>
+      <div id="catList"></div>
+      <button class="miniadd" onclick="addCat()">+ Add product</button>
+    </details>
+  </div>
+
+  <!-- ============ PREVIEW / PRINT SHEET ============ -->
+  <div class="stage">
+    <div class="sheet" id="sheet"></div>
+  </div>
+</div>
+
+<script>
+/* ---------------- data ---------------- */
+const RATE_DEFAULT=3.6725;
+const COMPANY={
+  name:"4POWER Infocom FZ LLC",
+  lines:["Office 213, Building 06, Dubai Outsource City","P.O. Box 500127, Dubai, United Arab Emirates",
+         "T: +971 4 546 7989 | E: accounts@4power.biz | W: www.4power.biz","TRN # 100383849500003"]
+};
+const BANK={
+  name:"4POWER Infocom FZ LLC",
+  branch:"First Abu Dhabi Bank (FAB) | Sheikh Zayed Road Branch | Dubai, UAE",
+  aedAc:"1031 3219 3166 4010", usdAc:"1031 0019 3166 4024",
+  aedIban:"AE860330000019100017280", usdIban:"AE 8503 5103 1001 9316 6402 4", swift:"NBADAEAA"
+};
+const defaultCatalogue=[
+  {part:"CDM404-B-20K",desc:"Cash Deposit Machine",hsn:"8303000",price:2942},
+  {part:"-",desc:"Airfreight",hsn:"-",price:0},
+  {part:"-",desc:"Insurance",hsn:"-",price:0}
+];
+const defaultCustomers=[
+  {label:"Simba Technology (T) Limited",id:"Simba (T)",attention:"",
+   bill:{name:"Simba Technology (T) Limited",addr:"Ground Floor, Bohra Building\nZanaki / Makunganya Street\nP.O. Box 20055, Dar Es Salaam\nTanzania"},
+   deliver:{name:"Simba Technology (T) Limited",addr:"Ground Floor, Bohra Building\nZanaki / Makunganya Street\nP.O. Box 20055, Dar Es Salaam\nTanzania"}}
+];
+const LOGO_LIGHT=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 268 52" fill="none"><defs><linearGradient id="gl" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0FB39A"/><stop offset="1" stop-color="#A3E635"/></linearGradient></defs><path fill="url(#gl)" d="M0.628784 38.0125C0.628784 36.422 1.91806 35.1328 3.50851 35.1328H28.6033C30.1935 35.1328 31.483 36.422 31.483 38.0125V49.1199C31.483 50.7104 30.1935 51.9996 28.6033 51.9996H3.50851C1.91806 51.9996 0.628784 50.7104 0.628784 49.1199V38.0125Z"></path><path fill="url(#gl)" d="M35.7194 2.87972C35.7194 1.28928 37.0085 0 38.599 0H49.7064C51.297 0 52.5865 1.28928 52.5865 2.87972V28.0567C52.5865 29.6473 51.297 30.9364 49.7064 30.9364H38.599C37.0085 30.9364 35.7194 29.6473 35.7194 28.0567V2.87972Z"></path><path fill="url(#gl)" d="M2.71462 30.9364C0.882087 30.9364 -0.0356463 28.7208 1.26015 27.4251L27.971 0.71401C29.2671 -0.581789 31.4827 0.335944 31.4827 2.16848V28.8794C31.4827 30.0154 30.5616 30.9364 29.4257 30.9364H2.71462Z"></path><path fill="url(#gl)" d="M44.1528 51.9978C48.8105 51.9978 52.5863 48.222 52.5863 43.5643C52.5863 38.9066 48.8105 35.1309 44.1528 35.1309C39.4951 35.1309 35.7194 38.9066 35.7194 43.5643C35.7194 48.222 39.4951 51.9978 44.1528 51.9978Z"></path><path fill="#0B1C3E" d="M95.5197 30.5957C96.0313 30.5957 96.4463 31.0111 96.4463 31.5236V35.3776C96.4463 35.89 96.0313 36.3055 95.5197 36.3055H94.0189C93.5068 36.3055 93.0922 36.7209 93.0922 37.2333V40.686C93.0922 41.1985 92.6772 41.6139 92.1652 41.6139H87.802C87.29 41.6139 86.875 41.1985 86.875 40.686V37.2333C86.875 36.7209 86.46 36.3055 85.9484 36.3055H72.9978C72.4862 36.3055 72.0712 35.89 72.0712 35.3776V30.8212C72.0712 30.6732 72.1064 30.5273 72.1744 30.3954L82.2332 10.8909C82.392 10.5825 82.71 10.3887 83.0566 10.3887H87.5927C88.2863 10.3887 88.7345 11.1232 88.4173 11.7407L79.4293 29.2437C79.1122 29.8615 79.5604 30.5957 80.2536 30.5957H85.9484C86.46 30.5957 86.875 30.1803 86.875 29.6678V24.1189C86.875 23.6065 87.29 23.1911 87.802 23.1911H92.1652C92.6772 23.1911 93.0922 23.6065 93.0922 24.1189V29.6678C93.0922 30.1803 93.5068 30.5957 94.0189 30.5957H95.5197Z"></path><path fill="#0B1C3E" d="M113.222 10.3887C116.234 10.3887 118.768 11.3998 120.826 13.422C122.883 15.4442 123.912 17.9273 123.912 20.8714C123.912 23.8155 122.883 26.2989 120.826 28.3208C118.768 30.3432 116.234 31.354 113.222 31.354H108.648C108.136 31.354 107.721 31.7694 107.721 32.2818V40.686C107.721 41.1985 107.306 41.6139 106.794 41.6139H102.476C101.964 41.6139 101.549 41.1985 101.549 40.686V11.3165C101.549 10.8041 101.964 10.3887 102.476 10.3887H113.222ZM113.222 25.5999C114.534 25.5999 115.623 25.1538 116.487 24.2616C117.352 23.3395 117.784 22.2097 117.784 20.8714C117.784 19.5034 117.352 18.3734 116.487 17.4813C115.623 16.5891 114.534 16.143 113.222 16.143H108.648C108.136 16.143 107.721 16.5584 107.721 17.0709V24.672C107.721 25.1844 108.136 25.5999 108.648 25.5999H113.222Z"></path><path fill="#0B1C3E" d="M155.619 37.5541C152.459 40.6764 148.612 42.2378 144.08 42.2378C139.548 42.2378 135.701 40.6764 132.541 37.5541C129.41 34.402 127.844 30.5508 127.844 26.0007C127.844 21.4509 129.41 17.6146 132.541 14.4921C135.701 11.3398 139.548 9.76367 144.08 9.76367C148.612 9.76367 152.459 11.3398 155.619 14.4921C158.779 17.6146 160.36 21.4509 160.36 26.0007C160.36 30.5508 158.779 34.402 155.619 37.5541ZM136.879 33.3609C138.817 35.2643 141.217 36.2158 144.08 36.2158C146.942 36.2158 149.343 35.2643 151.281 33.3609C153.219 31.4281 154.188 28.9746 154.188 26.0007C154.188 23.0268 153.219 20.5735 151.281 18.6405C149.343 16.7076 146.942 15.7411 144.08 15.7411C141.217 15.7411 138.817 16.7076 136.879 18.6405C134.941 20.5735 133.972 23.0268 133.972 26.0007C133.972 28.9746 134.941 31.4281 136.879 33.3609Z"></path><path fill="#0B1C3E" d="M172.099 41.6139C171.684 41.6139 171.319 41.3374 171.206 40.9369L162.961 11.5675C162.795 10.9757 163.239 10.3887 163.854 10.3887H168.398C168.82 10.3887 169.189 10.6745 169.295 11.0838L174.25 30.2221C174.487 31.1384 175.782 31.1525 176.039 30.2412L181.448 11.0644C181.561 10.6647 181.925 10.3887 182.34 10.3887H186.216C186.63 10.3887 186.994 10.6639 187.108 11.0628L192.558 30.2545C192.816 31.1645 194.11 31.1492 194.347 30.2338L199.304 11.0838C199.41 10.6745 199.779 10.3887 200.201 10.3887H204.746C205.36 10.3887 205.804 10.9757 205.638 11.5675L197.393 40.9369C197.281 41.3374 196.916 41.6139 196.501 41.6139H190.88C190.466 41.6139 190.103 41.3399 189.989 40.9419L185.172 24.1272C184.915 23.2305 183.645 23.2317 183.389 24.1293L178.61 40.9402C178.497 41.3386 178.133 41.6139 177.718 41.6139H172.099Z"></path><path fill="#0B1C3E" d="M217.286 34.798C217.286 35.3104 217.701 35.7259 218.213 35.7259H229.553C230.065 35.7259 230.48 36.1413 230.48 36.6537V40.686C230.48 41.1985 230.065 41.6139 229.553 41.6139H212.041C211.529 41.6139 211.114 41.1985 211.114 40.686V11.3165C211.114 10.8041 211.529 10.3887 212.041 10.3887H229.329C229.841 10.3887 230.256 10.8041 230.256 11.3165V15.349C230.256 15.8615 229.841 16.2769 229.329 16.2769H218.213C217.701 16.2769 217.286 16.6923 217.286 17.2047V21.9954C217.286 22.5078 217.701 22.9233 218.213 22.9233H228.211C228.723 22.9233 229.138 23.3387 229.138 23.8511V27.7943C229.138 28.3067 228.723 28.7222 228.211 28.7222H218.213C217.701 28.7222 217.286 29.1376 217.286 29.65V34.798Z"></path><path fill="#0B1C3E" d="M254.103 41.6139C253.773 41.6139 253.468 41.4385 253.302 41.1529L247.532 31.235C247.366 30.9498 247.061 30.7744 246.731 30.7744H243.495C242.983 30.7744 242.568 31.1898 242.568 31.7022V40.686C242.568 41.1985 242.153 41.6139 241.641 41.6139H237.323C236.81 41.6139 236.396 41.1985 236.396 40.686V11.3165C236.396 10.8041 236.81 10.3887 237.323 10.3887H248.919C251.811 10.3887 254.271 11.3998 256.298 13.422C258.326 15.4442 259.34 17.8827 259.34 20.7376C259.34 22.6708 258.788 24.4697 257.685 26.1351C256.773 27.4867 255.617 28.5646 254.216 29.3677C253.74 29.6413 253.545 30.2499 253.824 30.7242L259.411 40.2151C259.775 40.8336 259.33 41.6139 258.612 41.6139H254.103ZM243.495 16.143C242.983 16.143 242.568 16.5584 242.568 17.0709V24.449C242.568 24.9614 242.983 25.3768 243.495 25.3768H248.919C250.082 25.3768 251.08 24.9307 251.915 24.0385C252.75 23.1169 253.168 22.0165 253.168 20.7376C253.168 19.4588 252.75 18.3734 251.915 17.4813C251.08 16.5891 250.082 16.143 248.919 16.143H243.495Z"></path></svg>`;
+const LOGO_DARK_S=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 268 52" fill="none"><defs><linearGradient id="gd" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0FB39A"/><stop offset="1" stop-color="#A3E635"/></linearGradient></defs><path fill="url(#gd)" d="M0.628784 38.0125C0.628784 36.422 1.91806 35.1328 3.50851 35.1328H28.6033C30.1935 35.1328 31.483 36.422 31.483 38.0125V49.1199C31.483 50.7104 30.1935 51.9996 28.6033 51.9996H3.50851C1.91806 51.9996 0.628784 50.7104 0.628784 49.1199V38.0125Z"></path><path fill="url(#gd)" d="M35.7194 2.87972C35.7194 1.28928 37.0085 0 38.599 0H49.7064C51.297 0 52.5865 1.28928 52.5865 2.87972V28.0567C52.5865 29.6473 51.297 30.9364 49.7064 30.9364H38.599C37.0085 30.9364 35.7194 29.6473 35.7194 28.0567V2.87972Z"></path><path fill="url(#gd)" d="M2.71462 30.9364C0.882087 30.9364 -0.0356463 28.7208 1.26015 27.4251L27.971 0.71401C29.2671 -0.581789 31.4827 0.335944 31.4827 2.16848V28.8794C31.4827 30.0154 30.5616 30.9364 29.4257 30.9364H2.71462Z"></path><path fill="url(#gd)" d="M44.1528 51.9978C48.8105 51.9978 52.5863 48.222 52.5863 43.5643C52.5863 38.9066 48.8105 35.1309 44.1528 35.1309C39.4951 35.1309 35.7194 38.9066 35.7194 43.5643C35.7194 48.222 39.4951 51.9978 44.1528 51.9978Z"></path><path fill="#FFFFFF" d="M95.5197 30.5957C96.0313 30.5957 96.4463 31.0111 96.4463 31.5236V35.3776C96.4463 35.89 96.0313 36.3055 95.5197 36.3055H94.0189C93.5068 36.3055 93.0922 36.7209 93.0922 37.2333V40.686C93.0922 41.1985 92.6772 41.6139 92.1652 41.6139H87.802C87.29 41.6139 86.875 41.1985 86.875 40.686V37.2333C86.875 36.7209 86.46 36.3055 85.9484 36.3055H72.9978C72.4862 36.3055 72.0712 35.89 72.0712 35.3776V30.8212C72.0712 30.6732 72.1064 30.5273 72.1744 30.3954L82.2332 10.8909C82.392 10.5825 82.71 10.3887 83.0566 10.3887H87.5927C88.2863 10.3887 88.7345 11.1232 88.4173 11.7407L79.4293 29.2437C79.1122 29.8615 79.5604 30.5957 80.2536 30.5957H85.9484C86.46 30.5957 86.875 30.1803 86.875 29.6678V24.1189C86.875 23.6065 87.29 23.1911 87.802 23.1911H92.1652C92.6772 23.1911 93.0922 23.6065 93.0922 24.1189V29.6678C93.0922 30.1803 93.5068 30.5957 94.0189 30.5957H95.5197Z"></path><path fill="#FFFFFF" d="M113.222 10.3887C116.234 10.3887 118.768 11.3998 120.826 13.422C122.883 15.4442 123.912 17.9273 123.912 20.8714C123.912 23.8155 122.883 26.2989 120.826 28.3208C118.768 30.3432 116.234 31.354 113.222 31.354H108.648C108.136 31.354 107.721 31.7694 107.721 32.2818V40.686C107.721 41.1985 107.306 41.6139 106.794 41.6139H102.476C101.964 41.6139 101.549 41.1985 101.549 40.686V11.3165C101.549 10.8041 101.964 10.3887 102.476 10.3887H113.222ZM113.222 25.5999C114.534 25.5999 115.623 25.1538 116.487 24.2616C117.352 23.3395 117.784 22.2097 117.784 20.8714C117.784 19.5034 117.352 18.3734 116.487 17.4813C115.623 16.5891 114.534 16.143 113.222 16.143H108.648C108.136 16.143 107.721 16.5584 107.721 17.0709V24.672C107.721 25.1844 108.136 25.5999 108.648 25.5999H113.222Z"></path><path fill="#FFFFFF" d="M155.619 37.5541C152.459 40.6764 148.612 42.2378 144.08 42.2378C139.548 42.2378 135.701 40.6764 132.541 37.5541C129.41 34.402 127.844 30.5508 127.844 26.0007C127.844 21.4509 129.41 17.6146 132.541 14.4921C135.701 11.3398 139.548 9.76367 144.08 9.76367C148.612 9.76367 152.459 11.3398 155.619 14.4921C158.779 17.6146 160.36 21.4509 160.36 26.0007C160.36 30.5508 158.779 34.402 155.619 37.5541ZM136.879 33.3609C138.817 35.2643 141.217 36.2158 144.08 36.2158C146.942 36.2158 149.343 35.2643 151.281 33.3609C153.219 31.4281 154.188 28.9746 154.188 26.0007C154.188 23.0268 153.219 20.5735 151.281 18.6405C149.343 16.7076 146.942 15.7411 144.08 15.7411C141.217 15.7411 138.817 16.7076 136.879 18.6405C134.941 20.5735 133.972 23.0268 133.972 26.0007C133.972 28.9746 134.941 31.4281 136.879 33.3609Z"></path><path fill="#FFFFFF" d="M172.099 41.6139C171.684 41.6139 171.319 41.3374 171.206 40.9369L162.961 11.5675C162.795 10.9757 163.239 10.3887 163.854 10.3887H168.398C168.82 10.3887 169.189 10.6745 169.295 11.0838L174.25 30.2221C174.487 31.1384 175.782 31.1525 176.039 30.2412L181.448 11.0644C181.561 10.6647 181.925 10.3887 182.34 10.3887H186.216C186.63 10.3887 186.994 10.6639 187.108 11.0628L192.558 30.2545C192.816 31.1645 194.11 31.1492 194.347 30.2338L199.304 11.0838C199.41 10.6745 199.779 10.3887 200.201 10.3887H204.746C205.36 10.3887 205.804 10.9757 205.638 11.5675L197.393 40.9369C197.281 41.3374 196.916 41.6139 196.501 41.6139H190.88C190.466 41.6139 190.103 41.3399 189.989 40.9419L185.172 24.1272C184.915 23.2305 183.645 23.2317 183.389 24.1293L178.61 40.9402C178.497 41.3386 178.133 41.6139 177.718 41.6139H172.099Z"></path><path fill="#FFFFFF" d="M217.286 34.798C217.286 35.3104 217.701 35.7259 218.213 35.7259H229.553C230.065 35.7259 230.48 36.1413 230.48 36.6537V40.686C230.48 41.1985 230.065 41.6139 229.553 41.6139H212.041C211.529 41.6139 211.114 41.1985 211.114 40.686V11.3165C211.114 10.8041 211.529 10.3887 212.041 10.3887H229.329C229.841 10.3887 230.256 10.8041 230.256 11.3165V15.349C230.256 15.8615 229.841 16.2769 229.329 16.2769H218.213C217.701 16.2769 217.286 16.6923 217.286 17.2047V21.9954C217.286 22.5078 217.701 22.9233 218.213 22.9233H228.211C228.723 22.9233 229.138 23.3387 229.138 23.8511V27.7943C229.138 28.3067 228.723 28.7222 228.211 28.7222H218.213C217.701 28.7222 217.286 29.1376 217.286 29.65V34.798Z"></path><path fill="#FFFFFF" d="M254.103 41.6139C253.773 41.6139 253.468 41.4385 253.302 41.1529L247.532 31.235C247.366 30.9498 247.061 30.7744 246.731 30.7744H243.495C242.983 30.7744 242.568 31.1898 242.568 31.7022V40.686C242.568 41.1985 242.153 41.6139 241.641 41.6139H237.323C236.81 41.6139 236.396 41.1985 236.396 40.686V11.3165C236.396 10.8041 236.81 10.3887 237.323 10.3887H248.919C251.811 10.3887 254.271 11.3998 256.298 13.422C258.326 15.4442 259.34 17.8827 259.34 20.7376C259.34 22.6708 258.788 24.4697 257.685 26.1351C256.773 27.4867 255.617 28.5646 254.216 29.3677C253.74 29.6413 253.545 30.2499 253.824 30.7242L259.411 40.2151C259.775 40.8336 259.33 41.6139 258.612 41.6139H254.103ZM243.495 16.143C242.983 16.143 242.568 16.5584 242.568 17.0709V24.449C242.568 24.9614 242.983 25.3768 243.495 25.3768H248.919C250.082 25.3768 251.08 24.9307 251.915 24.0385C252.75 23.1169 253.168 22.0165 253.168 20.7376C253.168 19.4588 252.75 18.3734 251.915 17.4813C251.08 16.5891 250.082 16.143 248.919 16.143H243.495Z"></path></svg>`;
+
+let catalogue=load('cat',defaultCatalogue);
+let customers=load('cust',defaultCustomers);
+let inv=blank('proforma');
+
+function blank(mode){
+  const t=new Date(); const iso=t.toISOString().slice(0,10);
+  return{mode,docTitle:mode==='proforma'?'PROFORMA INVOICE':'TAX INVOICE',docNumber:'',
+    dateInvoice:iso,dateSupply:'',ourRef:'',project:'',
+    custId:'',attention:'',yourRef:'',poNumber:'',
+    billName:'',billAddr:'',delName:'',delAddr:'',
+    terms:'Net 30',decl:'export',rate:RATE_DEFAULT,remit:'both',
+    items:[{part:'',desc:'',hsn:'',qty:1,price:0,vat:0}]};
+}
+function load(k,d){try{const v=localStorage.getItem('4p_inv_'+k);return v?JSON.parse(v):d}catch(e){return d}}
+function save(k,v){try{localStorage.setItem('4p_inv_'+k,JSON.stringify(v))}catch(e){}}
+
+/* ---------------- helpers ---------------- */
+function fmt(n){return (n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function dmy(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y}
+function addDays(iso,n){const d=new Date(iso+'T00:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
+const ONES=['','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+const TENS=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+function below1000(n){let s='';if(n>=100){s+=ONES[Math.floor(n/100)]+' hundred';n%=100;if(n)s+=' '}if(n>=20){s+=TENS[Math.floor(n/10)];n%=10;if(n)s+='-'+ONES[n]}else if(n)s+=ONES[n];return s}
+function words(n){n=Math.floor(n);if(n===0)return'zero';const sc=[['billion',1e9],['million',1e6],['thousand',1e3]];let s='';for(const[name,val]of sc){if(n>=val){s+=below1000(Math.floor(n/val))+' '+name+' ';n%=val}}if(n)s+=below1000(n);return s.trim()}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+function amountWords(amt,cur){const i=Math.floor(amt+1e-6);const f=Math.round((amt-i)*100);let s=cap(words(i));if(f>0)s+=' and '+words(f)+(cur==='AED'?' fils':' cents');return s}
+
+/* ---------------- compute ---------------- */
+function compute(){
+  const rate=parseFloat(inv.rate)||RATE_DEFAULT;
+  let netT=0,vatT=0;
+  const rows=inv.items.map(it=>{
+    const qty=parseFloat(it.qty)||0,price=parseFloat(it.price)||0,vr=parseFloat(it.vat)||0;
+    const filled=(it.desc||it.part)&&qty>0;
+    const net=qty*price, vat=Math.round(net*vr/100*100)/100, tUSD=net+vat, tAED=tUSD*rate;
+    if(filled){netT+=net;vatT+=vat}
+    return{...it,filled,net,vat,tUSD,tAED};
+  });
+  const totUSD=netT+vatT, totAED=totUSD*rate;
+  return{rate,rows,netT,vatT,totUSD,totAED};
+}
+
+/* ---------------- render preview ---------------- */
+function render(){
+  const c=compute();
+  const filled=c.rows.filter(r=>r.filled);
+  const minRows=Math.max(0,5-filled.length);
+  let body='';let n=0;
+  filled.forEach(r=>{n++;body+=`<tr>
+    <td class="col-no">${n}</td><td class="l">${esc(r.part)||'-'}</td><td class="l desc">${esc(r.desc)}</td>
+    <td class="col-hsn">${esc(r.hsn)||'-'}</td><td class="col-qty">${r.qty}</td>
+    <td>USD ${fmt(r.price)}</td><td>USD ${fmt(r.net)}</td><td>${r.vat?(parseFloat(r.vat)||0):0}%</td>
+    <td>USD ${fmt(r.vat)}</td><td>USD ${fmt(r.tUSD)}</td><td>AED ${fmt(r.tAED)}</td></tr>`});
+  for(let i=0;i<minRows;i++)body+=`<tr class="blank"><td class="col-no"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
+  if(filled.length===0&&minRows===0)body=`<tr><td colspan="11" class="l empty-note">Add a line item to begin…</td></tr>`;
+
+  const declText=inv.decl==='export'
+    ? 'The services in the Invoice are meant for Export as per Article as place of supply of such services is outside UAE.'
+    : 'VAT charged at 5% in accordance with UAE VAT law.';
+  const remitRows=[];
+  if(inv.remit!=='usd')remitRows.push(`A/c # (AED) <b>${BANK.aedAc}</b> &nbsp; IBAN <b>${BANK.aedIban}</b>`);
+  if(inv.remit!=='aed')remitRows.push(`A/c # (USD) <b>${BANK.usdAc}</b> &nbsp; IBAN <b>${BANK.usdIban}</b>`);
+
+  document.getElementById('sheet').innerHTML=`
+  <div class="hd"><div>${LOGO_LIGHT}</div>
+    <div class="doctitle">${(inv.docTitle||'').split(' ')[0]||''}<b>${(inv.docTitle||'').split(' ').slice(1).join(' ')}</b></div></div>
+  <div class="limekey"></div>
+  <div class="meta">
+    <div class="co"><div class="nm">${COMPANY.name}</div>${COMPANY.lines.map(l=>esc(l)).join('<br>')}</div>
+    <table class="mtbl">
+      <tr><td class="k">${inv.mode==='proforma'?'Proforma No.':'Invoice No.'}</td><td class="v">${esc(inv.docNumber)||'—'}</td></tr>
+      <tr><td class="k">Date of Invoice</td><td class="v">${dmy(inv.dateInvoice)||'—'}</td></tr>
+      <tr><td class="k">Date of Supply</td><td class="v">${dmy(inv.dateSupply)||'—'}</td></tr>
+      <tr><td class="k">Our Reference</td><td class="v">${esc(inv.ourRef)||'—'}</td></tr>
+      <tr><td class="k">Project Name</td><td class="v">${esc(inv.project)||'—'}</td></tr>
+    </table>
+  </div>
+  <div class="addrs">
+    <div class="bx"><div class="h">Bill To</div><div class="nm">${esc(inv.billName)||'—'}</div><div class="ln">${esc(inv.billAddr)}</div></div>
+    <div class="bx"><div class="h">Deliver To</div><div class="nm">${esc(inv.delName)||'—'}</div><div class="ln">${esc(inv.delAddr)}</div></div>
+    <div class="bx right"><table class="mtbl">
+      <tr><td class="k">Customer ID</td><td class="v">${esc(inv.custId)||'—'}</td></tr>
+      <tr><td class="k">Your Reference</td><td class="v">${esc(inv.yourRef)||'—'}</td></tr>
+      <tr><td class="k">PO Number</td><td class="v">${esc(inv.poNumber)||'—'}</td></tr>
+      <tr><td class="k">Attention</td><td class="v">${esc(inv.attention)||'—'}</td></tr>
+      <tr><td class="k">Payment Terms</td><td class="v">${inv.terms}</td></tr>
+      <tr><td class="k">Due Date</td><td class="v">${dmy(document.getElementById('dueDate').value)||'—'}</td></tr>
+    </table></div>
+  </div>
+  <table class="lines"><thead><tr>
+    <th class="l col-no">No</th><th class="l">Part #</th><th class="l">Description</th><th class="l col-hsn">HSN Code</th>
+    <th class="col-qty">Qty</th><th>Unit Price (USD)</th><th>Net Taxable (USD)</th><th>VAT Rate</th>
+    <th>VAT Amt (USD)</th><th>Total (USD)</th><th>Total (AED)</th></tr></thead><tbody>${body}</tbody></table>
+
+  <div class="totwrap">
+    <div class="aiw"><div class="band">Amount in words</div><div class="body">
+      <div class="r"><span class="k">USD</span><span class="v">${amountWords(c.totUSD,'USD')} US Dollars only</span></div>
+      <div class="r"><span class="k">AED</span><span class="v">${amountWords(c.totAED,'AED')} Dirhams only</span></div>
+    </div></div>
+    <div class="sums"><table>
+      <tr><th class="l"></th><th>USD</th><th>AED</th></tr>
+      <tr><td class="k">Net Taxable Value</td><td>USD ${fmt(c.netT)}</td><td>AED ${fmt(c.netT*c.rate)}</td></tr>
+      <tr><td class="k">VAT</td><td>${c.vatT?('USD '+fmt(c.vatT)):'-'}</td><td>${c.vatT?('AED '+fmt(c.vatT*c.rate)):'-'}</td></tr>
+      <tr class="tot"><td class="k">Total Sales Amount</td><td><span class="val"><span class="u">USD</span> ${fmt(c.totUSD)}</span></td><td><span class="val"><span class="u">AED</span> ${fmt(c.totAED)}</span></td></tr>
+    </table></div>
+  </div>
+
+  <div class="decl"><div class="h">Declaration</div><p>${declText}<br>Central Bank Rate used for USD to AED conversion = ${c.rate}</p></div>
+  <div class="remit">
+    <div></div>
+    <div><div class="h">Remit To</div><div class="bank"><b>${BANK.name}</b><br>${BANK.branch}<br>${remitRows.join('<br>')}<br>SWIFT: <b>${BANK.swift}</b></div></div>
+  </div>
+  <div class="foot">
+    <div class="ty">Thank you for <b>your business.</b></div>
+    <div class="lg">If you have any questions about this ${inv.mode==='proforma'?'proforma':'invoice'}, please contact accounts@4power.biz.</div>
+    <div class="lg">This is a computer-generated ${inv.mode==='proforma'?'proforma invoice':'invoice'} and does not require a signature or stamp.</div>
+    <div class="lg">© ${new Date().getFullYear()} 4POWER Infocom FZ LLC. All rights reserved.</div>
+    ${LOGO_DARK_S}
+  </div>`;
+}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}
+
+/* ---------------- bindings ---------------- */
+function bind(){
+  const map={docTitle:'docTitle',docNumber:'docNumber',dateInvoice:'dateInvoice',dateSupply:'dateSupply',
+    ourRef:'ourRef',project:'project',custId:'custId',attention:'attention',yourRef:'yourRef',poNumber:'poNumber',
+    billName:'billName',billAddr:'billAddr',delName:'delName',delAddr:'delAddr'};
+  Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);el.addEventListener('input',()=>{inv[key]=el.value;recompute()})});
+  ['terms','decl','rate','remit'].forEach(id=>{const el=document.getElementById(id);el.addEventListener('change',()=>{inv[id]=el.value;recompute()})});
+}
+function syncForm(){
+  inv.terms=document.getElementById('terms').value=inv.terms;
+  ['docTitle','docNumber','dateInvoice','dateSupply','ourRef','project','custId','attention','yourRef','poNumber','billName','billAddr','delName','delAddr','rate','decl','remit'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=inv[id]});
+  document.getElementById('terms').value=inv.terms;
+}
+function recompute(){
+  ['terms','decl','rate','remit','docNumber','docTitle','ourRef','project','custId','attention','yourRef','poNumber','billName','billAddr','delName','delAddr','dateInvoice','dateSupply'].forEach(id=>{const el=document.getElementById(id);if(el&&id in inv)inv[id]=el.value});
+  // due date
+  const t=inv.terms, di=inv.dateInvoice;
+  let due='';
+  if(di){if(t==='Advance')due=di;else{const d=parseInt((t.match(/\d+/)||[0])[0]);due=addDays(di,d)}}
+  document.getElementById('dueDate').value=due;
+  render(); persist();
+}
+function persist(){save('draft',inv)}
+
+/* ---------- items UI ---------- */
+function renderItems(){
+  const wrap=document.getElementById('items');wrap.innerHTML='';
+  inv.items.forEach((it,i)=>{
+    const opts=['<option value="-1">— custom / type below —</option>']
+      .concat(catalogue.map((c,ci)=>`<option value="${ci}">${esc(c.part==='-'?'':c.part+' · ')}${esc(c.desc)}</option>`)).join('');
+    const div=document.createElement('div');div.className='itrow';
+    div.innerHTML=`
+      <div class="top"><span class="num">${i+1}</span>
+        <select onchange="pickProduct(${i},this.value)">${opts}</select>
+        <button class="rm" onclick="rmItem(${i})" title="Remove">×</button></div>
+      <div class="grid">
+        <div class="fld"><label class="lbl">Part #</label><input value="${esc(it.part)}" oninput="setItem(${i},'part',this.value)"></div>
+        <div class="fld"><label class="lbl">HSN Code</label><input value="${esc(it.hsn)}" oninput="setItem(${i},'hsn',this.value)"></div>
+        <div class="fld full"><label class="lbl">Description</label><input value="${esc(it.desc)}" oninput="setItem(${i},'desc',this.value)"></div>
+        <div class="fld"><label class="lbl">Qty</label><input type="number" min="0" value="${it.qty}" oninput="setItem(${i},'qty',this.value)"></div>
+        <div class="fld"><label class="lbl">Unit Price (USD)</label><input type="number" min="0" step="0.01" value="${it.price}" oninput="setItem(${i},'price',this.value)"></div>
+        <div class="fld"><label class="lbl">VAT Rate %</label><input type="number" min="0" step="0.5" value="${it.vat}" oninput="setItem(${i},'vat',this.value)"></div>
+      </div>`;
+    wrap.appendChild(div);
+  });
+}
+function setItem(i,k,v){inv.items[i][k]=v;render();persist()}
+function pickProduct(i,ci){ci=parseInt(ci);if(ci>=0){const c=catalogue[ci];inv.items[i].part=c.part;inv.items[i].desc=c.desc;inv.items[i].hsn=c.hsn;inv.items[i].price=c.price}renderItems();render();persist()}
+function addItem(){inv.items.push({part:'',desc:'',hsn:'',qty:1,price:0,vat:inv.decl==='domestic'?5:0});renderItems();render();persist()}
+function rmItem(i){inv.items.splice(i,1);if(!inv.items.length)inv.items.push({part:'',desc:'',hsn:'',qty:1,price:0,vat:0});renderItems();render();persist()}
+
+/* ---------- catalogue UI ---------- */
+function renderCat(){
+  const w=document.getElementById('catList');w.innerHTML='';
+  catalogue.forEach((c,i)=>{const d=document.createElement('div');d.className='catrow';
+    d.innerHTML=`<input placeholder="Part #" value="${esc(c.part)}" oninput="setCat(${i},'part',this.value)">
+      <input placeholder="HSN" value="${esc(c.hsn)}" oninput="setCat(${i},'hsn',this.value)">
+      <input placeholder="Description" value="${esc(c.desc)}" oninput="setCat(${i},'desc',this.value)" style="grid-column:1/2">
+      <input placeholder="Unit price USD" type="number" value="${c.price}" oninput="setCat(${i},'price',this.value)">
+      <div class="x"><button onclick="rmCat(${i})">remove</button></div>`;
+    w.appendChild(d)});
+}
+function setCat(i,k,v){catalogue[i][k]=k==='price'?(parseFloat(v)||0):v;save('cat',catalogue);renderItems()}
+function addCat(){catalogue.push({part:'',desc:'',hsn:'',price:0});save('cat',catalogue);renderCat();renderItems()}
+function rmCat(i){catalogue.splice(i,1);save('cat',catalogue);renderCat();renderItems()}
+
+/* ---------- customers ---------- */
+function renderCustomers(){
+  const s=document.getElementById('custSel');
+  s.innerHTML='<option value="-1">— select / new —</option>'+customers.map((c,i)=>`<option value="${i}">${esc(c.label)}</option>`).join('');
+}
+function pickCustomer(){const i=parseInt(document.getElementById('custSel').value);if(i<0)return;const c=customers[i];
+  inv.custId=c.id||'';inv.attention=c.attention||'';inv.billName=c.bill.name;inv.billAddr=c.bill.addr;inv.delName=c.deliver.name;inv.delAddr=c.deliver.addr;
+  syncForm();recompute()}
+
+/* ---------- mode ---------- */
+function setMode(m){
+  inv.mode=m;
+  document.getElementById('mProf').classList.toggle('on',m==='proforma');
+  document.getElementById('mComm').classList.toggle('on',m==='commercial');
+  document.getElementById('lblNum').textContent=m==='proforma'?'Proforma Reference No.':'Invoice No. (from Tally)';
+  if(!inv.docTitle||inv.docTitle==='PROFORMA INVOICE'||inv.docTitle==='TAX INVOICE')
+    inv.docTitle=m==='proforma'?'PROFORMA INVOICE':'TAX INVOICE';
+  document.getElementById('logBtn').textContent=m==='proforma'?'Log to Bigin → Order Received':'Log to Bigin → Payment Outstanding';
+  syncForm();recompute();
+}
+
+/* ---------- file + bigin ---------- */
+function saveJSON(){const blob=new Blob([JSON.stringify(inv,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=(inv.docNumber||inv.mode)+'.json';a.click()}
+function loadJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{inv=JSON.parse(r.result);setMode(inv.mode||'proforma');renderItems();syncForm();recompute()}catch(err){alert('Could not read file.')}};r.readAsText(f);e.target.value=''}
+function logToBigin(){
+  alert('Bigin logging is wired in Phase 3.\n\nThis button will:\n• attach the PDF to the selected Bigin deal\n• move it '+(inv.mode==='proforma'?'from Enquiries → Orders : Order Received':'to Payment Outstanding')+'\n\nvia your n8n bridge.');
+}
+
+/* ---------- init ---------- */
+function init(){
+  const draft=load('draft',null);if(draft&&draft.items)inv=draft;
+  bind();renderCustomers();renderCat();renderItems();setMode(inv.mode||'proforma');
+}
+init();
+</script>
+</body>
+</html>
