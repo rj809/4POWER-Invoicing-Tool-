@@ -91,22 +91,22 @@ details.cat[open] summary::before{content:'▾ '}
 .sheet .doctitle{font-family:var(--inv);font-weight:500;font-size:34px;color:var(--navy);text-align:right;line-height:1;text-transform:capitalize}
 .sheet .doctitle b{font-weight:500}
 
-.sheet .meta{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;padding:6px 0 14px;align-items:start}
+.sheet .meta{display:grid;grid-template-columns:1fr 330px;gap:18px;padding:6px 0 0;align-items:start}
 .sheet .co{font-size:11px;color:var(--navy);line-height:1.7}
 .sheet .co .nm{font-weight:600;font-size:11px;margin-bottom:1px}
 .sheet .co .ln{font-weight:300}
 .mtbl{width:100%;border-collapse:separate;border-spacing:0 3px}
 .mtbl td{vertical-align:middle}
-.mtbl td.k{background:var(--cream);color:var(--navy);font-weight:500;font-size:10px;padding:5px 9px;width:46%;white-space:nowrap}
+.mtbl td.k{background:var(--cream);color:var(--navy);font-weight:500;font-size:10px;padding:5px 9px;width:160px;white-space:nowrap}
 .mtbl td.v{padding:5px 9px;font-weight:400;font-size:11px;color:var(--navy);text-align:left}
+.rule{height:2px;background:var(--lime);border:0;margin:11px 0}
 
-.addrs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:8px 0 14px;align-items:start}
+.addrs{display:grid;grid-template-columns:1fr 1fr 330px;gap:18px;padding:0;align-items:start}
 .addrs .bx .h{display:inline-block;background:var(--cream);font-weight:500;font-size:11px;color:var(--navy);padding:3px 9px;margin-bottom:6px}
 .addrs .bx .nm{font-weight:600;font-size:11px;margin-bottom:2px}
 .addrs .bx .ln{font-weight:300;font-size:11px;line-height:1.55;white-space:pre-line}
-.addrs .right .mtbl td.k{width:60%}
 
-table.lines{width:100%;border-collapse:collapse;margin-top:2px}
+table.lines{width:100%;border-collapse:collapse;margin-top:0}
 table.lines thead th{background:var(--navy);color:#fff;font-family:var(--inv);font-weight:400;font-size:8.8px;
   line-height:1.2;padding:7px 5px;text-align:center;vertical-align:middle}
 table.lines thead th.l{text-align:left}
@@ -115,7 +115,7 @@ table.lines tbody td.l{text-align:left}
 table.lines tbody tr.blank td{height:26px}
 .col-no{width:24px}.col-hsn{width:58px}.col-qty{width:30px}
 
-.totwrap{display:grid;grid-template-columns:1.18fr 1fr;gap:14px;margin-top:12px;align-items:start}
+.totwrap{display:grid;grid-template-columns:1.18fr 1fr;gap:14px;margin-top:0;align-items:start}
 .aiw .band{background:var(--navy);color:#fff;font-weight:500;font-size:10px;padding:6px 10px}
 .aiw .r{display:grid;grid-template-columns:auto 1fr;border-bottom:1px solid var(--bds)}
 .aiw .r .k{background:var(--cream);font-weight:400;font-size:9.5px;padding:6px 10px;white-space:nowrap}
@@ -127,14 +127,14 @@ table.lines tbody tr.blank td{height:26px}
 .sums td.k{text-align:left;background:var(--cream);font-weight:400}
 .sums tr.tot td{background:var(--totlime);color:var(--navy);font-weight:600;border:0}
 
-.decl{margin-top:12px;background:var(--cream);padding:10px 12px}
+.decl{margin-top:11px;background:var(--cream);padding:10px 12px}
 .decl .h{font-weight:500;font-size:10px;margin-bottom:3px}
 .decl p{font-size:8.5px;font-weight:300;line-height:1.55}
-.remit2{margin-top:12px;display:grid;grid-template-columns:1.18fr 1fr;gap:14px;align-items:start}
+.remit2{margin-top:0;display:grid;grid-template-columns:1.18fr 1fr;gap:14px;align-items:start}
 .remit2 .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:4px 9px;margin-bottom:7px}
 .remit2 .bank{font-size:10px;font-weight:300;line-height:1.75}
 .remit2 .remarks{min-height:58px}
-.foot{margin:14px -40px 0;background:var(--navy);color:var(--ftsub);padding:20px 40px;
+.foot{margin:0 -40px 0;background:var(--navy);color:var(--ftsub);padding:20px 40px;
   display:flex;flex-direction:column;gap:4px}
 .foot .ty{font-family:var(--inv);font-weight:500;font-size:16px;color:#fff;margin-bottom:7px}
 .foot .lg{font-size:9px;font-weight:300;line-height:1.6}
@@ -143,17 +143,27 @@ table.lines tbody tr.blank td{height:26px}
 .empty-note{font-size:10.5px;color:var(--mut);font-style:italic}
 
 @media print{
-  @page{size:A4;margin:0}
+  @page{size:A4;margin:0 0 8mm 0;
+    @bottom-right{content:"Page " counter(page) " of " counter(pages);
+      font-family:'Poppins',sans-serif;font-size:8px;color:#0B1C3E;padding:0 13mm 4mm 0}}
   body{background:#fff}
   .topbar,.controls{display:none!important}
   .layout{display:block;height:auto}
   .stage{padding:0;overflow:visible;background:#fff;display:block}
-  .sheet{width:auto;min-height:auto;box-shadow:none;padding:10mm 13mm 0;font-size:10.3px}
-  .foot{margin:12px -13mm 0;padding:15px 13mm}
-  .totwrap{margin-top:11px}.decl{margin-top:11px}.remit2{margin-top:10px}
+  .sheet{width:auto;min-height:auto;box-shadow:none;padding:8mm 13mm 0;font-size:10px}
+  .sheet .hd{padding-bottom:4px}
+  .rule{margin:5px 0}
+  .sheet .meta{padding-top:2px}
+  table.lines tbody td{padding:6px 5px}
+  table.lines tbody tr.blank td{height:9px}
+  .decl{margin-top:7px;padding:8px 12px}
+  .aiw .band,.sums th{padding:5px 8px}
+  .aiw .r .k,.aiw .r .v,.sums td{padding:4px 8px}
+  .foot{margin:0 -13mm 0;padding:11px 13mm}
+  .foot .ty{margin-bottom:4px}
   table.lines thead{display:table-header-group}
   table.lines tr{break-inside:avoid}
-  .totwrap,.decl,.remit2{break-inside:avoid}
+  .totwrap,.decl,.remit2,.foot{break-inside:avoid}
 }
 </style>
 </head>
@@ -336,7 +346,7 @@ function compute(){
 function render(){
   const c=compute();
   const filled=c.rows.filter(r=>r.filled);
-  const minRows=Math.max(0,5-filled.length);
+  const minRows=Math.max(0,4-filled.length);
   let body='';let n=0;
   filled.forEach(r=>{n++;body+=`<tr>
     <td class="col-no">${n}</td><td>${esc(r.part)||'-'}</td><td class="l">${esc(r.desc)}</td>
@@ -360,6 +370,7 @@ function render(){
   document.getElementById('sheet').innerHTML=`
   <div class="hd"><div>${LOGO_LIGHT}</div>
     <div class="doctitle">${esc(inv.docTitle||'Invoice')}</div></div>
+  <div class="rule"></div>
   <div class="meta">
     <div class="co"><div class="nm">${COMPANY.name}</div><div class="ln">${COMPANY.lines.map(l=>esc(l)).join('<br>')}</div></div>
     <table class="mtbl">
@@ -370,6 +381,7 @@ function render(){
       <tr><td class="k">Project Name</td><td class="v">${esc(inv.project)||'—'}</td></tr>
     </table>
   </div>
+  <div class="rule"></div>
   <div class="addrs">
     <div class="bx"><div class="h">Bill To</div><div class="nm">${esc(inv.billName)||'—'}</div><div class="ln">${esc(inv.billAddr)}</div></div>
     <div class="bx"><div class="h">Deliver To</div><div class="nm">${esc(inv.delName)||'—'}</div><div class="ln">${esc(inv.delAddr)}</div></div>
@@ -382,12 +394,14 @@ function render(){
       <tr><td class="k">Due Date</td><td class="v">${dmy(document.getElementById('dueDate').value)||'—'}</td></tr>
     </table></div>
   </div>
+  <div class="rule"></div>
   <table class="lines"><thead><tr>
     <th class="col-no">No</th><th>Part #</th><th class="l">Description</th><th class="col-hsn">HSN Code</th>
     <th class="col-qty">Qty</th><th>Unit Price<br>(USD)</th><th>Net Taxable<br>Value (USD)</th><th>VAT<br>Rate</th>
     <th>VAT Amount<br>(USD)</th><th>Total Sales<br>Amount (USD)</th><th>Total Sales<br>Amount (AED)</th></tr></thead><tbody>${body}</tbody></table>
 
   <div class="decl"><div class="h">Declaration</div><p>${declText}<br>Central Bank Rate used for USD to AED conversion = ${c.rate}</p></div>
+  <div class="rule"></div>
 
   <div class="totwrap">
     <div class="aiw">
@@ -403,11 +417,13 @@ function render(){
       <tr class="tot"><td class="k">Total Sales Amount</td><td>USD ${fmt(c.totUSD)}</td><td>AED ${fmt(c.totAED)}</td></tr>
     </table></div>
   </div>
+  <div class="rule"></div>
 
   <div class="remit2">
     <div><div class="h">Additional Remarks</div><div class="remarks ln">${esc(inv.remarks||'')}</div></div>
     <div><div class="h">Remit To</div><div class="bank">${BANK.name}<br>${BANK.branch}<br>${acct}<br>${ibanRows.join('<br>')}<br>SWIFT: ${BANK.swift}</div></div>
   </div>
+  <div class="rule"></div>
 
   <div class="foot">
     <div class="ty">Thank you for your business!</div>
