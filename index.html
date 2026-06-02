@@ -188,13 +188,23 @@ table.lines tbody tr.blank td{height:22px}
 
     <div class="eyebrow">Customer</div>
     <div class="fld">
+      <label>Search Bigin</label>
+      <input id="custSearch" placeholder="Type a company name…" autocomplete="off">
+      <div class="hint" id="custStatus">Live lookup from Bigin. Type at least two characters.</div>
+    </div>
+    <div class="fld">
       <label>Select customer</label>
       <select id="custSel" onchange="pickCustomer()"></select>
-      <div class="hint">Phase 2 will pull this list live from Bigin.</div>
     </div>
     <div class="row2">
       <div class="fld"><label>Customer ID</label><input id="custId" placeholder="—"></div>
-      <div class="fld"><label>Attention</label><input id="attention" placeholder="—"></div>
+      <div class="fld"><label>Attention</label>
+        <select id="contactSel" onchange="pickContact()" style="display:none;margin-bottom:6px"></select>
+        <input id="attention" placeholder="—"></div>
+    </div>
+    <div class="fld" id="dealWrap" style="display:none">
+      <label>Link a Bigin deal <span style="color:var(--mut);font-weight:400">— fills Your Ref &amp; PO</span></label>
+      <select id="dealSel" onchange="pickDeal()"></select>
     </div>
     <div class="row2">
       <div class="fld"><label>Your Reference</label><input id="yourRef" placeholder="—"></div>
@@ -464,14 +474,122 @@ function setCat(i,k,v){catalogue[i][k]=k==='price'?(parseFloat(v)||0):v;save('ca
 function addCat(){catalogue.push({part:'',desc:'',hsn:'',price:0});save('cat',catalogue);renderCat();renderItems()}
 function rmCat(i){catalogue.splice(i,1);save('cat',catalogue);renderCat();renderItems()}
 
-/* ---------- customers ---------- */
-function renderCustomers(){
-  const s=document.getElementById('custSel');
-  s.innerHTML='<option value="-1">— select / new —</option>'+customers.map((c,i)=>`<option value="${i}">${esc(c.label)}</option>`).join('');
+/* ---------- customers (Phase 2 — live Bigin lookup) ---------- */
+const BRIDGE='https://launch4power.app.n8n.cloud/webhook/bigin-bridge';
+let liveCompanies=[];   // last deduped live search results
+let activeBiginId='';   // Bigin account id of the picked customer
+let custSrch=null;      // debounce handle
+
+function setStatus(msg,kind){ // kind: '' | 'live' | 'warn'
+  const el=document.getElementById('custStatus');if(!el)return;
+  el.textContent=msg;
+  el.style.color = kind==='warn' ? '#DC2626' : (kind==='live' ? '#0FB39A' : 'var(--mut)');
 }
-function pickCustomer(){const i=parseInt(document.getElementById('custSel').value);if(i<0)return;const c=customers[i];
-  inv.custId=c.id||'';inv.attention=c.attention||'';inv.billName=c.bill.name;inv.billAddr=c.bill.addr;inv.delName=c.deliver.name;inv.delAddr=c.deliver.addr;
-  syncForm();recompute()}
+async function bridge(params){
+  const url=BRIDGE+'?'+new URLSearchParams(params).toString();
+  const r=await fetch(url,{method:'GET'});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return r.json();
+}
+function dedupeByName(arr){
+  const seen=new Set();const out=[];
+  arr.forEach(c=>{const k=(c.name||'').trim().toLowerCase();if(k&&!seen.has(k)){seen.add(k);out.push(c)}});
+  return out;
+}
+function renderCustomers(){ // local seed (default + offline fallback)
+  const s=document.getElementById('custSel');
+  s.innerHTML='<option value="local:-1">— select / new —</option>'
+    +customers.map((c,i)=>`<option value="local:${i}">${esc(c.label)}</option>`).join('');
+}
+function renderLive(){
+  const s=document.getElementById('custSel');
+  s.innerHTML='<option value="live:-1">— select a Bigin result —</option>'
+    +liveCompanies.map((c,i)=>`<option value="live:${i}">${esc(c.name)}</option>`).join('');
+}
+function initCustomerSearch(){
+  const inp=document.getElementById('custSearch');if(!inp)return;
+  inp.addEventListener('input',()=>{
+    clearTimeout(custSrch);
+    const q=inp.value.trim();
+    if(q.length<2){renderCustomers();setStatus('Live lookup from Bigin. Type at least two characters.','');return}
+    setStatus('Searching Bigin…','');
+    custSrch=setTimeout(async()=>{
+      try{
+        const res=await bridge({action:'search_companies',q});
+        liveCompanies=dedupeByName(res.companies||[]);
+        if(liveCompanies.length){renderLive();setStatus(liveCompanies.length+' match'+(liveCompanies.length>1?'es':'')+' in Bigin.','live')}
+        else{renderCustomers();setStatus('No Bigin matches — using local list.','warn')}
+      }catch(e){renderCustomers();setStatus('Bigin unreachable — using local list.','warn')}
+    },350);
+  });
+}
+function resetSubPickers(){
+  const cs=document.getElementById('contactSel');const dw=document.getElementById('dealWrap');
+  if(cs){cs.style.display='none';cs.innerHTML=''}
+  if(dw){dw.style.display='none'}
+}
+function composeAddr(c){
+  const l2=[c.billCity,c.billState].filter(Boolean).join(', ');
+  return [c.billStreet||'',l2,c.billCountry||''].filter(Boolean).join('\n');
+}
+function pickCustomer(){
+  const raw=document.getElementById('custSel').value||'';
+  const sep=raw.indexOf(':');const src=raw.slice(0,sep);const i=parseInt(raw.slice(sep+1));
+  resetSubPickers();
+  if(!(i>=0)){activeBiginId='';return}
+  if(src==='local'){
+    const c=customers[i];activeBiginId='';
+    inv.custId=c.id||'';inv.attention=c.attention||'';
+    inv.billName=c.bill.name;inv.billAddr=c.bill.addr;
+    inv.delName=c.deliver.name;inv.delAddr=c.deliver.addr;
+    syncForm();recompute();return;
+  }
+  const c=liveCompanies[i];if(!c)return; // live
+  activeBiginId=c.id;
+  const addr=composeAddr(c); // empty in Bigin → typed manually
+  inv.custId='';inv.attention='';
+  inv.billName=c.name;inv.billAddr=addr;
+  inv.delName=c.name;inv.delAddr=addr;
+  syncForm();recompute();
+  loadContacts(c.id);loadDeals(c.id);
+}
+async function loadContacts(id){
+  try{
+    const res=await bridge({action:'get_company',id});
+    const cs=document.getElementById('contactSel');if(!cs)return;
+    const list=res.contacts||[];
+    if(!list.length){cs.style.display='none';return}
+    cs.innerHTML='<option value="-1">— select contact for Attention —</option>'
+      +list.map((c,i)=>`<option value="${i}">${esc(c.name)}${c.email?(' · '+esc(c.email)):''}</option>`).join('');
+    cs.style.display='';cs._list=list;
+  }catch(e){/* Attention stays manual */}
+}
+function pickContact(){
+  const cs=document.getElementById('contactSel');const i=parseInt(cs.value);
+  if(!(i>=0)||!cs._list)return;
+  inv.attention=cs._list[i].name||'';
+  syncForm();recompute();
+}
+async function loadDeals(id){
+  try{
+    const res=await bridge({action:'list_deals',id});
+    const dw=document.getElementById('dealWrap');const ds=document.getElementById('dealSel');
+    if(!dw||!ds)return;
+    const list=res.deals||[];
+    if(!list.length){dw.style.display='none';return}
+    ds.innerHTML='<option value="-1">— don’t link —</option>'
+      +list.map((d,i)=>`<option value="${i}">${esc(d.name)}${d.stage?(' · '+esc(d.stage)):''}</option>`).join('');
+    dw.style.display='';ds._list=list;
+  }catch(e){/* deals optional */}
+}
+function pickDeal(){
+  const ds=document.getElementById('dealSel');const i=parseInt(ds.value);
+  if(!(i>=0)||!ds._list)return;
+  const d=ds._list[i];
+  if(d.yourRef)inv.yourRef=d.yourRef;
+  if(d.po)inv.poNumber=d.po;
+  syncForm();recompute();
+}
 
 /* ---------- mode ---------- */
 function setMode(m){
@@ -498,7 +616,7 @@ function logToBigin(){
 /* ---------- init ---------- */
 function init(){
   const draft=load('draft',null);if(draft&&draft.items)inv=draft;
-  bind();renderCustomers();renderCat();renderItems();setMode(inv.mode||'proforma');
+  bind();renderCustomers();initCustomerSearch();renderCat();renderItems();setMode(inv.mode||'proforma');
 }
 init();
 </script>
