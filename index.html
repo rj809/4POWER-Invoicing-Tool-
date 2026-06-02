@@ -6,14 +6,15 @@
 <title>4POWER · Invoice Generator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Raleway:wght@300;500;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&family=Raleway:wght@300;500;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
   --navy:#0B1C3E; --navy-mid:#1E2B45; --lime:#A3E635; --teal:#0FB39A;
   --blue:#1478DC; --blue-h:#0F62BB; --emerald:#10B981;
   --s1:#F5F4F0; --s2:#EDECE7; --s3:#E2E0D8; --white:#fff;
   --tx:#0B1C3E; --tx2:#4A5568; --mut:#8A93A2; --bd:#D8D6CE; --bds:#E8E6DF;
-  --r:8px; --disp:'Raleway',sans-serif; --body:'Manrope',sans-serif;
+  --r:8px; --disp:'Raleway',sans-serif; --body:'Manrope',sans-serif; --inv:'Poppins',sans-serif;
+  --cream:#F4F2EC; --totlime:#A3E634; --ftsub:#B7C5DC; --ftcopy:#8FA3C2;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--body);background:var(--s2);color:var(--tx);font-size:14px;line-height:1.45}
@@ -84,63 +85,60 @@ details.cat[open] summary::before{content:'▾ '}
 
 /* ---------- INVOICE SHEET (print target) ---------- */
 .sheet{width:794px;min-height:1123px;background:#fff;box-shadow:0 6px 30px rgba(11,28,62,.12);
-  padding:46px 46px 0;display:flex;flex-direction:column;font-size:11px;color:var(--navy)}
-.sheet .hd{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px}
-.sheet .hd svg{height:46px;width:auto}
-.sheet .doctitle{font-family:var(--disp);font-weight:300;font-size:30px;color:var(--navy);text-align:right;line-height:1}
-.sheet .doctitle b{font-weight:900;display:block}
-.limekey{height:3px;background:var(--lime);margin:0 0 16px}
-.sheet .meta{display:grid;grid-template-columns:1.25fr 1fr;gap:30px;padding-bottom:14px}
-.sheet .co{font-size:10.5px;color:var(--tx2);line-height:1.55}
-.sheet .co .nm{font-weight:700;color:var(--navy);font-size:11.5px;margin-bottom:2px}
-.mtbl{width:100%;border-collapse:collapse}
-.mtbl td{padding:2.5px 0;font-size:10.5px;vertical-align:top}
-.mtbl td.k{color:var(--tx2);font-weight:600;width:48%}
-.mtbl td.v{text-align:right;font-weight:600;color:var(--navy)}
-.addrs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;padding:14px 0 18px;border-top:1px solid var(--bds)}
-.addrs .bx .h{font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);margin-bottom:5px}
-.addrs .bx .nm{font-weight:700;font-size:11px}
-.addrs .bx .ln{color:var(--tx2);font-size:10.5px;line-height:1.5;white-space:pre-line}
-.addrs .right .mtbl td{padding:2px 0}
+  padding:40px 40px 0;display:flex;flex-direction:column;font-family:var(--inv);font-size:11px;color:var(--navy)}
+.sheet .hd{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:8px}
+.sheet .hd svg{height:50px;width:auto}
+.sheet .doctitle{font-family:var(--inv);font-weight:500;font-size:34px;color:var(--navy);text-align:right;line-height:1;text-transform:capitalize}
+.sheet .doctitle b{font-weight:500}
+
+.sheet .meta{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;padding:6px 0 14px;align-items:start}
+.sheet .co{font-size:11px;color:var(--navy);line-height:1.7}
+.sheet .co .nm{font-weight:600;font-size:11px;margin-bottom:1px}
+.sheet .co .ln{font-weight:300}
+.mtbl{width:100%;border-collapse:separate;border-spacing:0 3px}
+.mtbl td{vertical-align:middle}
+.mtbl td.k{background:var(--cream);color:var(--navy);font-weight:500;font-size:10px;padding:5px 9px;width:46%;white-space:nowrap}
+.mtbl td.v{padding:5px 9px;font-weight:400;font-size:11px;color:var(--navy);text-align:left}
+
+.addrs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:8px 0 14px;align-items:start}
+.addrs .bx .h{display:inline-block;background:var(--cream);font-weight:500;font-size:11px;color:var(--navy);padding:3px 9px;margin-bottom:6px}
+.addrs .bx .nm{font-weight:600;font-size:11px;margin-bottom:2px}
+.addrs .bx .ln{font-weight:300;font-size:11px;line-height:1.55;white-space:pre-line}
+.addrs .right .mtbl td.k{width:60%}
 
 table.lines{width:100%;border-collapse:collapse;margin-top:2px}
-table.lines thead th{background:var(--navy);color:#fff;font-family:var(--body);font-weight:600;font-size:8.6px;
-  text-transform:uppercase;letter-spacing:.02em;padding:8px 6px;text-align:right;vertical-align:middle}
+table.lines thead th{background:var(--navy);color:#fff;font-family:var(--inv);font-weight:400;font-size:8.8px;
+  line-height:1.2;padding:7px 5px;text-align:center;vertical-align:middle}
 table.lines thead th.l{text-align:left}
-table.lines tbody td{padding:8px 6px;font-size:10px;border-bottom:1px solid var(--bds);text-align:right;vertical-align:top}
+table.lines tbody td{padding:9px 5px;font-size:10px;font-weight:400;border-bottom:1px solid var(--bds);text-align:center;vertical-align:middle}
 table.lines tbody td.l{text-align:left}
-table.lines tbody td.desc{font-weight:600}
-table.lines tbody tr.blank td{height:22px}
-.col-no{width:26px}.col-hsn{width:62px}.col-qty{width:34px}
+table.lines tbody tr.blank td{height:26px}
+.col-no{width:24px}.col-hsn{width:58px}.col-qty{width:30px}
 
-.totwrap{display:grid;grid-template-columns:1.15fr 1fr;gap:22px;margin-top:16px}
-.aiw .band{background:var(--navy);color:#fff;font-weight:700;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;padding:7px 11px;border-radius:6px 6px 0 0}
-.aiw .body{border:1px solid var(--bds);border-top:0;border-radius:0 0 6px 6px;padding:9px 11px}
-.aiw .body .r{display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:10px}
-.aiw .body .r .k{color:var(--tx2);font-weight:600}
-.aiw .body .r .v{text-align:right;color:var(--navy);max-width:62%}
+.totwrap{display:grid;grid-template-columns:1.18fr 1fr;gap:14px;margin-top:12px;align-items:start}
+.aiw .band{background:var(--navy);color:#fff;font-weight:500;font-size:10px;padding:6px 10px}
+.aiw .r{display:grid;grid-template-columns:auto 1fr;border-bottom:1px solid var(--bds)}
+.aiw .r .k{background:var(--cream);font-weight:400;font-size:9.5px;padding:6px 10px;white-space:nowrap}
+.aiw .r .v{font-weight:400;font-size:9.5px;padding:6px 10px}
 .sums table{width:100%;border-collapse:collapse}
-.sums th{font-size:8.5px;text-transform:uppercase;letter-spacing:.04em;color:#fff;background:var(--navy);padding:6px 8px;text-align:right}
-.sums th.l{text-align:left;background:transparent;color:var(--tx2)}
-.sums td{padding:6px 8px;font-size:10.5px;text-align:right;border-bottom:1px solid var(--bds)}
-.sums td.k{text-align:left;color:var(--tx2);font-weight:600}
-.sums tr.tot td{background:var(--lime);color:var(--navy);font-weight:800;border:0}
-.sums tr.tot td .u{font-weight:400;font-size:9px;color:var(--navy);opacity:.8;margin-right:2px}
-.sums .val{font-family:var(--disp);font-weight:800}
+.sums th{font-weight:500;font-size:10px;color:#fff;background:var(--navy);padding:6px 8px;text-align:right}
+.sums th.l{text-align:left}
+.sums td{padding:6px 8px;font-size:10px;text-align:right;border-bottom:1px solid var(--bds)}
+.sums td.k{text-align:left;background:var(--cream);font-weight:400}
+.sums tr.tot td{background:var(--totlime);color:var(--navy);font-weight:600;border:0}
 
-.decl{margin-top:16px;background:var(--s1);border-radius:7px;padding:11px 13px}
-.decl .h{font-weight:700;font-size:10px;margin-bottom:3px}
-.decl p{font-size:9.8px;color:var(--tx2);line-height:1.5}
-.remit{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:22px}
-.remit .h{font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);margin-bottom:5px}
-.remit .bank{font-size:10px;color:var(--tx2);line-height:1.6}
-.remit .bank b{color:var(--navy)}
-.foot{margin:20px -46px 0;background:var(--navy);color:#cdd6e6;padding:22px 46px;border-radius:0;
-  display:flex;flex-direction:column;gap:5px}
-.foot .ty{font-family:var(--disp);font-weight:300;font-size:17px;color:#fff;margin-bottom:6px}
-.foot .ty b{font-weight:800}
-.foot svg{height:24px;width:auto;margin-top:8px;opacity:.95}
-.foot .lg{font-size:9px;line-height:1.6}
+.decl{margin-top:12px;background:var(--cream);padding:10px 12px}
+.decl .h{font-weight:500;font-size:10px;margin-bottom:3px}
+.decl p{font-size:8.5px;font-weight:300;line-height:1.55}
+.remit2{margin-top:12px;display:grid;grid-template-columns:1.18fr 1fr;gap:14px;align-items:start}
+.remit2 .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:4px 9px;margin-bottom:7px}
+.remit2 .bank{font-size:10px;font-weight:300;line-height:1.75}
+.remit2 .remarks{min-height:58px}
+.foot{margin:14px -40px 0;background:var(--navy);color:var(--ftsub);padding:20px 40px;
+  display:flex;flex-direction:column;gap:4px}
+.foot .ty{font-family:var(--inv);font-weight:500;font-size:16px;color:#fff;margin-bottom:7px}
+.foot .lg{font-size:9px;font-weight:300;line-height:1.6}
+.foot .cp{font-size:9px;font-weight:400;color:var(--ftcopy);margin-top:2px}
 
 .empty-note{font-size:10.5px;color:var(--mut);font-style:italic}
 
@@ -152,10 +150,10 @@ table.lines tbody tr.blank td{height:22px}
   .stage{padding:0;overflow:visible;background:#fff;display:block}
   .sheet{width:auto;min-height:auto;box-shadow:none;padding:10mm 13mm 0;font-size:10.3px}
   .foot{margin:12px -13mm 0;padding:15px 13mm}
-  .totwrap{margin-top:11px}.decl{margin-top:11px}.remit{margin-top:9px}
+  .totwrap{margin-top:11px}.decl{margin-top:11px}.remit2{margin-top:10px}
   table.lines thead{display:table-header-group}
   table.lines tr{break-inside:avoid}
-  .totwrap,.decl,.remit{break-inside:avoid}
+  .totwrap,.decl,.remit2{break-inside:avoid}
 }
 </style>
 </head>
@@ -341,7 +339,7 @@ function render(){
   const minRows=Math.max(0,5-filled.length);
   let body='';let n=0;
   filled.forEach(r=>{n++;body+=`<tr>
-    <td class="col-no">${n}</td><td class="l">${esc(r.part)||'-'}</td><td class="l desc">${esc(r.desc)}</td>
+    <td class="col-no">${n}</td><td>${esc(r.part)||'-'}</td><td class="l">${esc(r.desc)}</td>
     <td class="col-hsn">${esc(r.hsn)||'-'}</td><td class="col-qty">${r.qty}</td>
     <td>USD ${fmt(r.price)}</td><td>USD ${fmt(r.net)}</td><td>${r.vat?(parseFloat(r.vat)||0):0}%</td>
     <td>USD ${fmt(r.vat)}</td><td>USD ${fmt(r.tUSD)}</td><td>AED ${fmt(r.tAED)}</td></tr>`});
@@ -351,19 +349,22 @@ function render(){
   const declText=inv.decl==='export'
     ? 'The services in the Invoice are meant for Export as per Article as place of supply of such services is outside UAE.'
     : 'VAT charged at 5% in accordance with UAE VAT law.';
-  const remitRows=[];
-  if(inv.remit!=='usd')remitRows.push(`A/c # (AED) <b>${BANK.aedAc}</b> &nbsp; IBAN <b>${BANK.aedIban}</b>`);
-  if(inv.remit!=='aed')remitRows.push(`A/c # (USD) <b>${BANK.usdAc}</b> &nbsp; IBAN <b>${BANK.usdIban}</b>`);
+  let acct;
+  if(inv.remit==='aed')acct=`A/c # (AED) ${BANK.aedAc}`;
+  else if(inv.remit==='usd')acct=`A/c # (US$) ${BANK.usdAc}`;
+  else acct=`A/c # (AED) ${BANK.aedAc} | (US$) ${BANK.usdAc}`;
+  const ibanRows=[];
+  if(inv.remit!=='usd')ibanRows.push(`IBAN # (AED) ${BANK.aedIban}`);
+  if(inv.remit!=='aed')ibanRows.push(`IBAN # (US$) ${BANK.usdIban}`);
 
   document.getElementById('sheet').innerHTML=`
   <div class="hd"><div>${LOGO_LIGHT}</div>
-    <div class="doctitle">${(inv.docTitle||'').split(' ')[0]||''}<b>${(inv.docTitle||'').split(' ').slice(1).join(' ')}</b></div></div>
-  <div class="limekey"></div>
+    <div class="doctitle">${esc(inv.docTitle||'Invoice')}</div></div>
   <div class="meta">
-    <div class="co"><div class="nm">${COMPANY.name}</div>${COMPANY.lines.map(l=>esc(l)).join('<br>')}</div>
+    <div class="co"><div class="nm">${COMPANY.name}</div><div class="ln">${COMPANY.lines.map(l=>esc(l)).join('<br>')}</div></div>
     <table class="mtbl">
-      <tr><td class="k">${inv.mode==='proforma'?'Proforma No.':'Invoice No.'}</td><td class="v">${esc(inv.docNumber)||'—'}</td></tr>
       <tr><td class="k">Date of Invoice</td><td class="v">${dmy(inv.dateInvoice)||'—'}</td></tr>
+      <tr><td class="k">${inv.mode==='proforma'?'Proforma #':'Invoice #'}</td><td class="v">${esc(inv.docNumber)||'—'}</td></tr>
       <tr><td class="k">Date of Supply</td><td class="v">${dmy(inv.dateSupply)||'—'}</td></tr>
       <tr><td class="k">Our Reference</td><td class="v">${esc(inv.ourRef)||'—'}</td></tr>
       <tr><td class="k">Project Name</td><td class="v">${esc(inv.project)||'—'}</td></tr>
@@ -375,41 +376,44 @@ function render(){
     <div class="bx right"><table class="mtbl">
       <tr><td class="k">Customer ID</td><td class="v">${esc(inv.custId)||'—'}</td></tr>
       <tr><td class="k">Your Reference</td><td class="v">${esc(inv.yourRef)||'—'}</td></tr>
-      <tr><td class="k">PO Number</td><td class="v">${esc(inv.poNumber)||'—'}</td></tr>
+      <tr><td class="k">Purchase Order Number</td><td class="v">${esc(inv.poNumber)||'—'}</td></tr>
       <tr><td class="k">Attention</td><td class="v">${esc(inv.attention)||'—'}</td></tr>
       <tr><td class="k">Payment Terms</td><td class="v">${inv.terms}</td></tr>
       <tr><td class="k">Due Date</td><td class="v">${dmy(document.getElementById('dueDate').value)||'—'}</td></tr>
     </table></div>
   </div>
   <table class="lines"><thead><tr>
-    <th class="l col-no">No</th><th class="l">Part #</th><th class="l">Description</th><th class="l col-hsn">HSN Code</th>
-    <th class="col-qty">Qty</th><th>Unit Price (USD)</th><th>Net Taxable (USD)</th><th>VAT Rate</th>
-    <th>VAT Amt (USD)</th><th>Total (USD)</th><th>Total (AED)</th></tr></thead><tbody>${body}</tbody></table>
+    <th class="col-no">No</th><th>Part #</th><th class="l">Description</th><th class="col-hsn">HSN Code</th>
+    <th class="col-qty">Qty</th><th>Unit Price<br>(USD)</th><th>Net Taxable<br>Value (USD)</th><th>VAT<br>Rate</th>
+    <th>VAT Amount<br>(USD)</th><th>Total Sales<br>Amount (USD)</th><th>Total Sales<br>Amount (AED)</th></tr></thead><tbody>${body}</tbody></table>
+
+  <div class="decl"><div class="h">Declaration</div><p>${declText}<br>Central Bank Rate used for USD to AED conversion = ${c.rate}</p></div>
 
   <div class="totwrap">
-    <div class="aiw"><div class="band">Amount in words</div><div class="body">
-      <div class="r"><span class="k">USD</span><span class="v">${amountWords(c.totUSD,'USD')} US Dollars only</span></div>
-      <div class="r"><span class="k">AED</span><span class="v">${amountWords(c.totAED,'AED')} Dirhams only</span></div>
-    </div></div>
+    <div class="aiw">
+      <div class="band">Amount in words</div>
+      <div class="r"><span class="k">VAT amount in words</span><span class="v">${amountWords(c.vatT,'USD')}</span></div>
+      <div class="r"><span class="k">Total amount in words (USD)</span><span class="v">${amountWords(c.totUSD,'USD')}</span></div>
+      <div class="r"><span class="k">Total amount in words (AED)</span><span class="v">${amountWords(c.totAED,'AED')}</span></div>
+    </div>
     <div class="sums"><table>
       <tr><th class="l"></th><th>USD</th><th>AED</th></tr>
       <tr><td class="k">Net Taxable Value</td><td>USD ${fmt(c.netT)}</td><td>AED ${fmt(c.netT*c.rate)}</td></tr>
       <tr><td class="k">VAT</td><td>${c.vatT?('USD '+fmt(c.vatT)):'-'}</td><td>${c.vatT?('AED '+fmt(c.vatT*c.rate)):'-'}</td></tr>
-      <tr class="tot"><td class="k">Total Sales Amount</td><td><span class="val"><span class="u">USD</span> ${fmt(c.totUSD)}</span></td><td><span class="val"><span class="u">AED</span> ${fmt(c.totAED)}</span></td></tr>
+      <tr class="tot"><td class="k">Total Sales Amount</td><td>USD ${fmt(c.totUSD)}</td><td>AED ${fmt(c.totAED)}</td></tr>
     </table></div>
   </div>
 
-  <div class="decl"><div class="h">Declaration</div><p>${declText}<br>Central Bank Rate used for USD to AED conversion = ${c.rate}</p></div>
-  <div class="remit">
-    <div></div>
-    <div><div class="h">Remit To</div><div class="bank"><b>${BANK.name}</b><br>${BANK.branch}<br>${remitRows.join('<br>')}<br>SWIFT: <b>${BANK.swift}</b></div></div>
+  <div class="remit2">
+    <div><div class="h">Additional Remarks</div><div class="remarks ln">${esc(inv.remarks||'')}</div></div>
+    <div><div class="h">Remit To</div><div class="bank">${BANK.name}<br>${BANK.branch}<br>${acct}<br>${ibanRows.join('<br>')}<br>SWIFT: ${BANK.swift}</div></div>
   </div>
+
   <div class="foot">
-    <div class="ty">Thank you for <b>your business.</b></div>
+    <div class="ty">Thank you for your business!</div>
     <div class="lg">If you have any questions about this ${inv.mode==='proforma'?'proforma':'invoice'}, please contact accounts@4power.biz.</div>
     <div class="lg">This is a computer-generated ${inv.mode==='proforma'?'proforma invoice':'invoice'} and does not require a signature or stamp.</div>
-    <div class="lg">© ${new Date().getFullYear()} 4POWER Infocom FZ LLC. All rights reserved.</div>
-    ${LOGO_DARK_S}
+    <div class="cp">© ${new Date().getFullYear()} 4POWER Infocom FZ LLC. All rights reserved.</div>
   </div>`;
 }
 function esc(s){return (s==null?'':String(s)).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}
