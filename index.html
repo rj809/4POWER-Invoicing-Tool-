@@ -48,6 +48,13 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .row2 .fld{margin-bottom:0}
 .hint{font-size:10.5px;color:var(--mut);margin-top:3px}
+.ac{position:absolute;left:0;right:0;top:100%;z-index:60;background:var(--white);border:1px solid var(--bd);
+  border-radius:var(--r);box-shadow:0 8px 24px rgba(11,28,62,.12);max-height:264px;overflow-y:auto;margin-top:4px}
+.ac-item{padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--bds)}
+.ac-item:last-child{border-bottom:0}
+.ac-item:hover,.ac-item.on{background:var(--s2)}
+.ac-item .sub{display:block;font-size:11px;color:var(--mut);margin-top:1px}
+.ac-empty{padding:9px 12px;font-size:12.5px;color:var(--mut)}
 
 .items{margin-top:6px}
 .itrow{background:#fff;border:1px solid var(--bd);border-radius:9px;padding:11px;margin-bottom:9px;position:relative}
@@ -189,12 +196,11 @@ table.lines tbody tr.blank td{height:22px}
     <div class="eyebrow">Customer</div>
     <div class="fld">
       <label>Search Bigin</label>
-      <input id="custSearch" placeholder="Type a company name…" autocomplete="off">
-      <div class="hint" id="custStatus">Live lookup from Bigin. Type at least two characters.</div>
-    </div>
-    <div class="fld">
-      <label>Select customer</label>
-      <select id="custSel" onchange="pickCustomer()"></select>
+      <div style="position:relative">
+        <input id="custSearch" placeholder="Type a company name…" autocomplete="off" role="combobox" aria-expanded="false">
+        <div id="custResults" class="ac" style="display:none"></div>
+      </div>
+      <div class="hint" id="custStatus">Type at least two characters to search Bigin.</div>
     </div>
     <div class="row2">
       <div class="fld"><label>Customer ID</label><input id="custId" placeholder="—"></div>
@@ -203,7 +209,7 @@ table.lines tbody tr.blank td{height:22px}
         <input id="attention" placeholder="—"></div>
     </div>
     <div class="fld" id="dealWrap" style="display:none">
-      <label>Link a Bigin deal <span style="color:var(--mut);font-weight:400">— fills Your Ref &amp; PO</span></label>
+      <label>Link a Bigin deal <span style="color:var(--mut);font-weight:400">— fills Our Ref</span></label>
       <select id="dealSel" onchange="pickDeal()"></select>
     </div>
     <div class="row2">
@@ -496,32 +502,67 @@ function dedupeByName(arr){
   arr.forEach(c=>{const k=(c.name||'').trim().toLowerCase();if(k&&!seen.has(k)){seen.add(k);out.push(c)}});
   return out;
 }
-function renderCustomers(){ // local seed (default + offline fallback)
-  const s=document.getElementById('custSel');
-  s.innerHTML='<option value="local:-1">— select / new —</option>'
-    +customers.map((c,i)=>`<option value="local:${i}">${esc(c.label)}</option>`).join('');
+function searchLocal(q){ // offline fallback against the local seed
+  q=q.toLowerCase();
+  return customers.map((c,i)=>({src:'local',i,name:c.label}))
+    .filter(o=>o.name.toLowerCase().includes(q));
 }
-function renderLive(){
-  const s=document.getElementById('custSel');
-  s.innerHTML='<option value="live:-1">— select a Bigin result —</option>'
-    +liveCompanies.map((c,i)=>`<option value="live:${i}">${esc(c.name)}</option>`).join('');
+function renderResults(items,emptyMsg){
+  const box=document.getElementById('custResults');const inp=document.getElementById('custSearch');
+  if(!box)return;
+  box.innerHTML = items.length
+    ? items.map((o,k)=>`<div class="ac-item" data-k="${k}" onmousedown="chooseResult(${k})">${esc(o.name)}${o.sub?`<span class="sub">${esc(o.sub)}</span>`:''}</div>`).join('')
+    : `<div class="ac-empty">${esc(emptyMsg||'No matches.')}</div>`;
+  box._items=items;box._sel=-1;
+  box.style.display='';if(inp)inp.setAttribute('aria-expanded','true');
+}
+function hideResults(){
+  const box=document.getElementById('custResults');const inp=document.getElementById('custSearch');
+  if(box)box.style.display='none';if(inp)inp.setAttribute('aria-expanded','false');
+}
+function chooseResult(k){
+  const box=document.getElementById('custResults');if(!box||!box._items)return;
+  const o=box._items[k];if(!o)return;
+  document.getElementById('custSearch').value=o.name;
+  hideResults();selectCompany(o);
 }
 function initCustomerSearch(){
   const inp=document.getElementById('custSearch');if(!inp)return;
   inp.addEventListener('input',()=>{
     clearTimeout(custSrch);
     const q=inp.value.trim();
-    if(q.length<2){renderCustomers();setStatus('Live lookup from Bigin. Type at least two characters.','');return}
+    if(q.length<2){hideResults();setStatus('Type at least two characters to search Bigin.','');return}
     setStatus('Searching Bigin…','');
     custSrch=setTimeout(async()=>{
       try{
         const res=await bridge({action:'search_companies',q});
         liveCompanies=dedupeByName(res.companies||[]);
-        if(liveCompanies.length){renderLive();setStatus(liveCompanies.length+' match'+(liveCompanies.length>1?'es':'')+' in Bigin.','live')}
-        else{renderCustomers();setStatus('No Bigin matches — using local list.','warn')}
-      }catch(e){renderCustomers();setStatus('Bigin unreachable — using local list.','warn')}
+        if(liveCompanies.length){
+          renderResults(liveCompanies.map((c,i)=>({src:'live',i,name:c.name,sub:[c.billCity,c.billCountry].filter(Boolean).join(', ')})));
+          setStatus(liveCompanies.length+' match'+(liveCompanies.length>1?'es':'')+' in Bigin.','live');
+        }else{
+          const loc=searchLocal(q);renderResults(loc,'No Bigin matches.');
+          setStatus('No Bigin matches'+(loc.length?' — showing local list.':'.'),'warn');
+        }
+      }catch(e){
+        const loc=searchLocal(q);renderResults(loc,'Bigin unreachable.');
+        setStatus('Bigin unreachable — showing local list.','warn');
+      }
     },350);
   });
+  inp.addEventListener('keydown',e=>{
+    const box=document.getElementById('custResults');
+    if(!box||box.style.display==='none')return;
+    const items=box.querySelectorAll('.ac-item');if(!items.length)return;
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      e.preventDefault();
+      box._sel=(box._sel+(e.key==='ArrowDown'?1:-1)+items.length)%items.length;
+      items.forEach((el,idx)=>el.classList.toggle('on',idx===box._sel));
+      items[box._sel].scrollIntoView({block:'nearest'});
+    }else if(e.key==='Enter'){ if(box._sel>=0){e.preventDefault();chooseResult(box._sel)} }
+    else if(e.key==='Escape'){ hideResults() }
+  });
+  inp.addEventListener('blur',()=>setTimeout(hideResults,150));
 }
 function resetSubPickers(){
   const cs=document.getElementById('contactSel');const dw=document.getElementById('dealWrap');
@@ -532,19 +573,16 @@ function composeAddr(c){
   const l2=[c.billCity,c.billState].filter(Boolean).join(', ');
   return [c.billStreet||'',l2,c.billCountry||''].filter(Boolean).join('\n');
 }
-function pickCustomer(){
-  const raw=document.getElementById('custSel').value||'';
-  const sep=raw.indexOf(':');const src=raw.slice(0,sep);const i=parseInt(raw.slice(sep+1));
+function selectCompany(o){
   resetSubPickers();
-  if(!(i>=0)){activeBiginId='';return}
-  if(src==='local'){
-    const c=customers[i];activeBiginId='';
+  if(o.src==='local'){
+    const c=customers[o.i];activeBiginId='';
     inv.custId=c.id||'';inv.attention=c.attention||'';
     inv.billName=c.bill.name;inv.billAddr=c.bill.addr;
     inv.delName=c.deliver.name;inv.delAddr=c.deliver.addr;
     syncForm();recompute();return;
   }
-  const c=liveCompanies[i];if(!c)return; // live
+  const c=liveCompanies[o.i];if(!c)return; // live Bigin pick
   activeBiginId=c.id;
   const addr=composeAddr(c); // empty in Bigin → typed manually
   inv.custId='';inv.attention='';
@@ -578,16 +616,14 @@ async function loadDeals(id){
     const list=res.deals||[];
     if(!list.length){dw.style.display='none';return}
     ds.innerHTML='<option value="-1">— don’t link —</option>'
-      +list.map((d,i)=>`<option value="${i}">${esc(d.name)}${d.stage?(' · '+esc(d.stage)):''}</option>`).join('');
+      +list.map((d,i)=>`<option value="${i}">${esc(d.name)}${d.ourRef?(' · '+esc(d.ourRef)):''}${d.stage?(' · '+esc(d.stage)):''}</option>`).join('');
     dw.style.display='';ds._list=list;
   }catch(e){/* deals optional */}
 }
 function pickDeal(){
   const ds=document.getElementById('dealSel');const i=parseInt(ds.value);
   if(!(i>=0)||!ds._list)return;
-  const d=ds._list[i];
-  if(d.yourRef)inv.yourRef=d.yourRef;
-  if(d.po)inv.poNumber=d.po;
+  inv.ourRef=ds._list[i].ourRef||'';   // Our Ref only — never the customer's Your Ref
   syncForm();recompute();
 }
 
@@ -616,7 +652,7 @@ function logToBigin(){
 /* ---------- init ---------- */
 function init(){
   const draft=load('draft',null);if(draft&&draft.items)inv=draft;
-  bind();renderCustomers();initCustomerSearch();renderCat();renderItems();setMode(inv.mode||'proforma');
+  bind();initCustomerSearch();renderCat();renderItems();setMode(inv.mode||'proforma');
 }
 init();
 </script>

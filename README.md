@@ -22,8 +22,10 @@ Publish directory: repository root. No build command.
 
 ## Roadmap
 - **Phase 2 (live):** type-to-search customer lookup from Zoho Bigin via the n8n "Bigin Bridge" webhook
-  (`/webhook/bigin-bridge`). Selecting a company pulls its contacts (Attention) and open deals
-  (Your Ref / PO). Billing address is pulled when present in Bigin, otherwise typed manually.
-  Falls back to the local list if the webhook is unreachable.
+  (`/webhook/bigin-bridge`). Matches appear in an autocomplete dropdown. Selecting a company pulls its
+  contacts (Attention) and its **4POWER-pipeline** deals (Orders / Quotations / Enquiries — Support and
+  Recycle Bin excluded). Linking a deal fills **Our Ref** from the Bigin record's "Our Ref" field
+  (never the customer's Your Ref). Billing address is pulled when present in Bigin, otherwise typed
+  manually. Falls back to the local list if the webhook is unreachable.
 - **Phase 3:** attach the generated PDF to the Bigin deal and advance its pipeline stage
   (Proforma → Orders : Order Received; Commercial → Payment Outstanding).
