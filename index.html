@@ -37,6 +37,16 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 
 .layout{display:grid;grid-template-columns:430px 1fr;gap:0;height:calc(100vh - 56px)}
 .controls{overflow-y:auto;padding:22px 22px 80px;background:var(--s1);border-right:1px solid var(--bd)}
+.wbar{display:flex;gap:6px;margin-bottom:18px}
+.wtab{flex:1;border:0;background:var(--s2);color:var(--mut);border-radius:8px;padding:9px 4px;font-weight:600;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.wtab span{display:inline-flex;width:18px;height:18px;border-radius:50%;background:#fff;color:var(--mut);align-items:center;justify-content:center;font-size:10px}
+.wtab.on{background:var(--navy);color:#fff}.wtab.on span{background:var(--lime);color:var(--navy)}
+.wtab.done span{background:var(--emerald);color:#fff}
+.wstep{display:none}.wstep.on{display:block}
+.wnav{display:flex;justify-content:space-between;gap:10px;margin-top:22px;padding-top:14px;border-top:1px solid var(--bd)}
+.rvok{background:#D1F5EB;color:#059669;padding:13px 15px;border-radius:8px;font-weight:600;font-size:13px}
+.rvbad{background:#FEE2E2;color:#DC2626;padding:13px 15px;border-radius:8px;font-size:13px}
+.rvbad ul{margin:7px 0 0 16px}.rvbad li{margin:3px 0}
 .stage{overflow-y:auto;padding:34px;background:var(--s2);display:flex;justify-content:center}
 
 .eyebrow{font-family:var(--body);font-weight:700;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin:22px 0 9px}
@@ -195,6 +205,13 @@ table.lines tbody tr.blank td{height:26px}
 <div class="layout">
   <!-- ============ CONTROLS ============ -->
   <div class="controls">
+    <div class="wbar" id="wbar">
+      <button class="wtab on" data-s="1" onclick="goStep(1)"><span>1</span>Document</button>
+      <button class="wtab" data-s="2" onclick="goStep(2)"><span>2</span>Customer</button>
+      <button class="wtab" data-s="3" onclick="goStep(3)"><span>3</span>Items</button>
+      <button class="wtab" data-s="4" onclick="goStep(4)"><span>4</span>Review</button>
+    </div>
+    <section class="wstep on" data-step="1">
     <div class="eyebrow">Document</div>
     <div class="row2">
       <div class="fld"><label id="lblTitle">Document Title</label><input id="docTitle"></div>
@@ -209,6 +226,8 @@ table.lines tbody tr.blank td{height:26px}
       <div class="fld"><label>Project Name</label><input id="project" placeholder="Cash Deposit Machine"></div>
     </div>
 
+    </section>
+    <section class="wstep" data-step="2">
     <div class="eyebrow">Customer</div>
     <div class="fld">
       <label>Search Bigin</label>
@@ -237,6 +256,8 @@ table.lines tbody tr.blank td{height:26px}
     <div class="fld"><label>Deliver To (name)</label><input id="delName"></div>
     <div class="fld"><label>Deliver To (address)</label><textarea id="delAddr"></textarea></div>
 
+    </section>
+    <section class="wstep" data-step="3">
     <div class="eyebrow">Terms &amp; settings</div>
     <div class="row2">
       <div class="fld"><label>Payment Terms</label>
@@ -273,6 +294,19 @@ table.lines tbody tr.blank td{height:26px}
       <div id="catList"></div>
       <button class="miniadd" onclick="addCat()">+ Add product</button>
     </details>
+    </section>
+    <section class="wstep" data-step="4">
+    <div class="eyebrow">Review &amp; issue</div>
+    <div id="reviewBox"></div>
+    <div class="row2" style="margin-top:14px">
+      <button class="btn btn-g" id="logBtn2" onclick="logToBigin()">Log to Bigin</button>
+      <button class="btn btn-p" onclick="window.print()">Print / Save PDF</button>
+    </div>
+    </section>
+    <div class="wnav">
+      <button class="btn btn-s" id="wback" onclick="goStep(curStep-1)">← Back</button>
+      <button class="btn btn-p" id="wnext" onclick="goStep(curStep+1)">Next →</button>
+    </div>
   </div>
 
   <!-- ============ PREVIEW / PRINT SHEET ============ -->
@@ -560,6 +594,7 @@ function recompute(){
   if(di){if(t==='Advance')due=di;else{const d=parseInt((t.match(/\d+/)||[0])[0]);due=addDays(di,d)}}
   document.getElementById('dueDate').value=due;
   render(); persist();
+  if(curStep===4&&typeof renderReview==='function')renderReview();
 }
 function persist(){save('draft',inv)}
 function validate(){
@@ -785,6 +820,8 @@ function setMode(m){
   const logBtn=document.getElementById('logBtn');
   if(dt.logStage){logBtn.textContent='Log to Bigin → '+dt.logStage.stage;logBtn.disabled=false;logBtn.style.opacity='';}
   else{logBtn.textContent='Attach to Bigin';logBtn.disabled=false;logBtn.style.opacity='';}
+  const lb2=document.getElementById('logBtn2');
+  if(lb2)lb2.textContent=dt.logStage?('Log to Bigin → '+dt.logStage.stage):'Attach to Bigin';
   // pricing-only controls
   document.querySelectorAll('[data-pricing]').forEach(el=>{el.style.display=dt.pricing?'':'none'});
   syncForm();recompute();
@@ -792,6 +829,24 @@ function setMode(m){
 function initDocTypes(){
   const sel=document.getElementById('docTypeSel');if(!sel)return;
   sel.innerHTML=Object.entries(CONFIG.docTypes).map(([k,d])=>`<option value="${k}">${d.label}</option>`).join('');
+}
+let curStep=1;
+function goStep(n){
+  n=Math.max(1,Math.min(4,n));curStep=n;
+  document.querySelectorAll('.wstep').forEach(s=>s.classList.toggle('on',+s.dataset.step===n));
+  document.querySelectorAll('.wtab').forEach(t=>{const s=+t.dataset.s;t.classList.toggle('on',s===n);t.classList.toggle('done',s<n)});
+  const back=document.getElementById('wback'),next=document.getElementById('wnext');
+  if(back)back.style.visibility=n===1?'hidden':'';
+  if(next)next.style.visibility=n===4?'hidden':'';
+  if(n===4)renderReview();
+  document.querySelector('.controls').scrollTop=0;
+}
+function renderReview(){
+  const box=document.getElementById('reviewBox');if(!box)return;
+  const dt=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
+  const issues=validate();
+  if(!issues.length)box.innerHTML=`<div class="rvok">All required fields complete — this ${esc(dt.label.toLowerCase())} is ready to issue.</div>`;
+  else box.innerHTML=`<div class="rvbad"><b>Resolve before issuing:</b><ul>${issues.map(i=>'<li>'+esc(i)+'</li>').join('')}</ul></div>`;
 }
 
 /* ---------- file + bigin ---------- */
@@ -840,7 +895,7 @@ async function logToBigin(){
 /* ---------- init ---------- */
 function init(){
   const draft=load('draft',null);if(draft&&draft.items)inv=draft;
-  bind();initCustomerSearch();initDocTypes();renderCat();renderItems();setMode(inv.mode||'proforma');
+  bind();initCustomerSearch();initDocTypes();renderCat();renderItems();setMode(inv.mode||'proforma');goStep(1);
 }
 init();
 </script>
