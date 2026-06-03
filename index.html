@@ -119,6 +119,10 @@ table.lines tbody tr.blank td{height:26px}
 .signoff{display:grid;grid-template-columns:1fr 1fr;gap:30px;padding-top:4px}
 .signoff .so .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:3px 9px;margin-bottom:16px}
 .signoff .soline{border-top:1px solid var(--bd);padding:5px 0 16px;font-size:9px;color:var(--mut)}
+.col-ser{width:110px}
+.checklist .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:3px 9px;margin-bottom:8px}
+.checklist .ck{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:10px;color:var(--navy)}
+.checklist .ck .box{width:11px;height:11px;border:1.4px solid var(--navy);border-radius:2px;flex:none}
 
 .totwrap{display:grid;grid-template-columns:1.18fr 1fr;gap:14px;margin-top:0;align-items:start}
 .aiw .band{background:var(--navy);color:#fff;font-weight:500;font-size:10px;padding:6px 10px}
@@ -300,6 +304,14 @@ const CONFIG={
     domestic:"VAT charged at the standard rate of 5% as per UAE Federal Decree-Law No. 8 of 2017 on Value Added Tax."
   },
   defaults:{ terms:"Net 30", decl:"export", remit:"both" },
+  installChecklist:[
+    "Unit unpacked and inspected — no transit damage",
+    "Powered on; self-test completed successfully",
+    "Cash acceptance and dispensing verified",
+    "Connectivity to CBS / network confirmed",
+    "Customer staff trained on operation",
+    "Site cleaned and unit handed over to customer"
+  ],
   /* Document types — the engine. Add a type here and it appears in the switcher.
      logStage = where the linked Bigin deal moves when this doc is logged (null = no move). */
   docTypes:{
@@ -307,7 +319,8 @@ const CONFIG={
     proforma:  { label:"Proforma",   title:"PROFORMA INVOICE", numLabel:"Proforma #",      footWord:"proforma",      dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
     commercial:{ label:"Tax Invoice",title:"TAX INVOICE",      numLabel:"Invoice #",       footWord:"invoice",       dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
     packingslip:{label:"Packing Slip",title:"PACKING SLIP",    numLabel:"Packing Slip #",  footWord:"packing slip",  dateLabel:"Date",            showSupply:false, pricing:false, signoff:true,  signLeft:"Packed by", signRight:"Received by", logStage:null },
-    deliverynote:{label:"Delivery Note",title:"DELIVERY NOTE", numLabel:"Delivery Note #", footWord:"delivery note", dateLabel:"Date",            showSupply:false, pricing:false, signoff:true,  signLeft:"Delivered by", signRight:"Received by", logStage:null }
+    deliverynote:{label:"Delivery Note",title:"DELIVERY NOTE", numLabel:"Delivery Note #", footWord:"delivery note", dateLabel:"Date",            showSupply:false, pricing:false, signoff:true,  signLeft:"Delivered by", signRight:"Received by", logStage:null },
+    installation:{label:"Installation Report",title:"INSTALLATION REPORT",numLabel:"Report #",footWord:"installation report",dateLabel:"Installation Date",showSupply:false,pricing:false,signoff:true,serials:true,checklist:true,signLeft:"Installed by (Engineer)",signRight:"Accepted by (Customer)",logStage:null }
   }
 };
 const COMPANY=CONFIG.company;
@@ -464,11 +477,13 @@ function renderSimpleDoc(dt,c){
   const filled=c.rows.filter(r=>r.filled);
   const subOf=r=>[ (r.part&&r.part!=='-')?('Part&nbsp;#&nbsp;'+esc(r.part)):'', (r.hsn&&r.hsn!=='-')?('HSN&nbsp;Code&nbsp;'+esc(r.hsn)):'' ].filter(Boolean).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
   let body='';let n=0;
+  const serCol=!!dt.serials;
   filled.forEach(r=>{n++;const sub=subOf(r);
-    body+=`<tr><td class="col-no">${n}</td><td class="l"><div class="li-desc">${esc(r.desc)}</div>${sub?`<div class="li-sub">${sub}</div>`:''}</td><td class="col-qty">${r.qty}</td></tr>`});
+    body+=`<tr><td class="col-no">${n}</td><td class="l"><div class="li-desc">${esc(r.desc)}</div>${sub?`<div class="li-sub">${sub}</div>`:''}</td>${serCol?`<td class="col-ser">${esc(r.serial)||'—'}</td>`:''}<td class="col-qty">${r.qty}</td></tr>`});
   const minRows=Math.max(1,4-filled.length);
-  for(let i=0;i<minRows;i++)body+=`<tr class="blank"><td class="col-no"></td><td></td><td></td></tr>`;
-  if(filled.length===0)body=`<tr><td colspan="3" class="l empty-note">Add a line item to begin…</td></tr>`;
+  const blankCells=serCol?'<td class="col-no"></td><td></td><td></td><td></td>':'<td class="col-no"></td><td></td><td></td>';
+  for(let i=0;i<minRows;i++)body+=`<tr class="blank">${blankCells}</tr>`;
+  if(filled.length===0)body=`<tr><td colspan="${serCol?4:3}" class="l empty-note">Add a line item to begin…</td></tr>`;
   const supplyRow=dt.showSupply?`<tr><td class="k">Date of Supply</td><td class="v">${dmy(inv.dateSupply)||'—'}</td></tr>`:'';
   const totQty=filled.reduce((s,r)=>s+(parseFloat(r.qty)||0),0);
   let signoff='';
@@ -476,6 +491,12 @@ function renderSimpleDoc(dt,c){
       <div class="so"><div class="h">${dt.signLeft||'Issued by'}</div><div class="soline">Name</div><div class="soline">Signature</div><div class="soline">Date</div></div>
       <div class="so"><div class="h">${dt.signRight||'Received by'}</div><div class="soline">Name</div><div class="soline">Signature</div><div class="soline">Date</div></div>
     </div><div class="rule"></div>`;
+  let checklist='';
+  if(dt.checklist&&CONFIG.installChecklist&&CONFIG.installChecklist.length)
+    checklist=`<div class="checklist"><div class="h">Installation Checklist</div>`+
+      CONFIG.installChecklist.map(t=>`<div class="ck"><span class="box"></span><span class="t">${esc(t)}</span></div>`).join('')+
+      `</div><div class="rule"></div>`;
+  const linesHead=`<tr><th class="col-no">No</th><th class="l">Description</th>${serCol?'<th class="col-ser">Serial No.</th>':''}<th class="col-qty">Qty</th></tr>`;
   document.getElementById('sheet').innerHTML=`
   <div class="hd"><div>${LOGO_LIGHT}</div><div class="doctitle">${esc(inv.docTitle||dt.title)}</div></div>
   <div class="rule"></div>
@@ -501,13 +522,14 @@ function renderSimpleDoc(dt,c){
     </table></div>
   </div>
   <div class="rule"></div>
-  <table class="lines"><thead><tr><th class="col-no">No</th><th class="l">Description</th><th class="col-qty">Qty</th></tr></thead><tbody>${body}</tbody></table>
+  <table class="lines"><thead>${linesHead}</thead><tbody>${body}</tbody></table>
   <div class="rule"></div>
   <div class="remit2">
     <div><div class="h">Additional Remarks</div><div class="remarks ln">${esc(inv.remarks||'')}</div></div>
     <div><div class="h">Summary</div><div class="bank">Total line items: ${filled.length}<br>Total quantity: ${totQty}</div></div>
   </div>
   <div class="rule"></div>
+  ${checklist}
   ${signoff}
   <div class="foot">
     <div class="ty">Thank you for your business!</div>
@@ -574,6 +596,7 @@ function renderItems(){
         <div class="fld"><label class="lbl">Qty</label><input type="number" min="0" value="${it.qty}" oninput="setItem(${i},'qty',this.value)"></div>
         <div class="fld"><label class="lbl">Unit Price (USD)</label><input type="number" min="0" step="0.01" value="${it.price}" oninput="setItem(${i},'price',this.value)"></div>
         <div class="fld"><label class="lbl">VAT Rate %</label><input type="number" min="0" step="0.5" value="${it.vat}" oninput="setItem(${i},'vat',this.value)"></div>
+        <div class="fld"><label class="lbl">Serial No. <span style="color:var(--mut);font-weight:400">(install)</span></label><input value="${esc(it.serial||'')}" oninput="setItem(${i},'serial',this.value)"></div>
       </div>`;
     wrap.appendChild(div);
   });
