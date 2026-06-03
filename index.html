@@ -279,12 +279,7 @@ table.lines tbody tr.blank td{height:26px}
       <div class="fld"><label>Due Date (auto)</label><input id="dueDate" readonly style="background:var(--s2)"></div>
     </div>
     <div class="row2">
-      <div class="fld"><label>Declaration</label>
-        <select id="decl" onchange="recompute()">
-          <option value="export" selected>Export — zero-rated</option>
-          <option value="domestic">Domestic — 5% VAT</option>
-        </select>
-      </div>
+      <div class="fld"><label>VAT (set by document type)</label><input id="vatNote" readonly style="background:var(--s2)"></div>
       <div class="fld"><label>USD → AED rate</label><input id="rate" type="number" step="0.0001" placeholder="e.g. 3.6725" oninput="recompute()"></div>
     </div>
     <div class="fld"><label>Remit account shown</label>
@@ -344,7 +339,8 @@ const CONFIG={
   },
   fx:{ default:3.6725, label:"Central Bank Rate used for USD to AED conversion" },
   declarations:{
-    export:"The services in the Invoice are meant for Export as per Article as place of supply of such services is outside UAE.",
+    exportServices:"The services in this Invoice are meant for export as the place of supply of such services is outside the UAE, and are zero-rated for VAT under UAE Federal Decree-Law No. 8 of 2017.",
+    exportGoods:"The goods in this Invoice are for export outside the UAE and are zero-rated for VAT under UAE Federal Decree-Law No. 8 of 2017.",
     domestic:"VAT charged at the standard rate of 5% as per UAE Federal Decree-Law No. 8 of 2017 on Value Added Tax."
   },
   defaults:{ terms:"Net 30", decl:"export", remit:"both" },
@@ -359,9 +355,11 @@ const CONFIG={
   /* Document types — the engine. Add a type here and it appears in the switcher.
      logStage = where the linked Bigin deal moves when this doc is logged (null = no move). */
   docTypes:{
-    quotation: { label:"Quotation",  title:"QUOTATION",        numLabel:"Quotation #",     footWord:"quotation",     dateLabel:"Date",            showSupply:false, pricing:true,  signoff:false, logStage:{pipeline:"Quotations",stage:"Submit Quotation"} },
-    proforma:  { label:"Proforma",   title:"PROFORMA INVOICE", numLabel:"Proforma #",      footWord:"proforma",      dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
-    commercial:{ label:"Tax Invoice",title:"TAX INVOICE",      numLabel:"Invoice #",       footWord:"invoice",       dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
+    quotation:    { label:"Quotation",            title:"QUOTATION",                numLabel:"Quotation #",     footWord:"quotation",            dateLabel:"Date",            showSupply:false, pricing:true,  vatRate:0, decl:null,             cif:false, signoff:false, logStage:{pipeline:"Quotations",stage:"Submit Quotation"} },
+    proforma:     { label:"Proforma",             title:"PROFORMA INVOICE",         numLabel:"Proforma #",      footWord:"proforma",             dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  vatRate:0, decl:"exportServices", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
+    domestic:     { label:"Domestic Tax Invoice", title:"TAX INVOICE",              numLabel:"Invoice #",       footWord:"tax invoice",          dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  vatRate:5, decl:"domestic",       cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
+    exportgoods:  { label:"Export Invoice — Goods",title:"EXPORT INVOICE",          numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  vatRate:0, decl:"exportGoods",    cif:true,  signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
+    exportservices:{label:"Export Invoice — Services",title:"EXPORT INVOICE",       numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  vatRate:0, decl:"exportServices", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
     packingslip:{label:"Packing Slip",title:"PACKING SLIP",    numLabel:"Packing Slip #",  footWord:"packing slip",  dateLabel:"Date",            showSupply:false, pricing:false, signoff:true,  signLeft:"Packed by", signRight:"Received by", logStage:null },
     deliverynote:{label:"Delivery Note",title:"DELIVERY NOTE", numLabel:"Delivery Note #", footWord:"delivery note", dateLabel:"Date",            showSupply:false, pricing:false, signoff:true,  signLeft:"Delivered by", signRight:"Received by", logStage:null },
     installation:{label:"Installation Report",title:"INSTALLATION REPORT",numLabel:"Report #",footWord:"installation report",dateLabel:"Installation Date",showSupply:false,pricing:false,signoff:true,serials:true,checklist:true,signLeft:"Installed by (Engineer)",signRight:"Accepted by (Customer)",logStage:null }
@@ -409,16 +407,18 @@ function amountWords(amt,cur){const i=Math.floor(amt+1e-6);const f=Math.round((a
 /* ---------------- compute ---------------- */
 function compute(){
   const rate=parseFloat(inv.rate)||RATE_DEFAULT;
+  const dt=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
+  const vrate=(dt.vatRate!=null)?dt.vatRate:0;   // VAT % locked by document type
   let netT=0,vatT=0;
   const rows=inv.items.map(it=>{
-    const qty=parseFloat(it.qty)||0,price=parseFloat(it.price)||0,vr=parseFloat(it.vat)||0;
+    const qty=parseFloat(it.qty)||0,price=parseFloat(it.price)||0;
     const filled=(it.desc||it.part)&&qty>0;
-    const net=qty*price, vat=Math.round(net*vr/100*100)/100, tUSD=net+vat, tAED=tUSD*rate;
-    if(filled){netT+=net;vatT+=vat}
-    return{...it,filled,net,vat,tUSD,tAED};
+    const net=qty*price, vatAmt=Math.round(net*vrate/100*100)/100, tUSD=net+vatAmt, tAED=tUSD*rate;
+    if(filled){netT+=net;vatT+=vatAmt}
+    return{...it,filled,net,vr:vrate,vatAmt,tUSD,tAED};
   });
   const totUSD=netT+vatT, totAED=totUSD*rate;
-  return{rate,rows,netT,vatT,totUSD,totAED};
+  return{rate,vrate,rows,netT,vatT,totUSD,totAED};
 }
 
 /* ---------------- render preview ---------------- */
@@ -435,12 +435,13 @@ function render(){
     <td class="col-no">${n}</td>
     <td class="l"><div class="li-desc">${esc(r.desc)}</div>${sub?`<div class="li-sub">${sub}</div>`:''}</td>
     <td class="col-qty">${r.qty}</td>
-    <td>USD ${fmt(r.price)}</td><td>USD ${fmt(r.net)}</td><td>${r.vat?(parseFloat(r.vat)||0):0}%</td>
-    <td>USD ${fmt(r.vat)}</td><td>USD ${fmt(r.tUSD)}</td><td>AED ${fmt(r.tAED)}</td></tr>`});
+    <td>USD ${fmt(r.price)}</td><td>USD ${fmt(r.net)}</td><td>${r.vr||0}%</td>
+    <td>USD ${fmt(r.vatAmt)}</td><td>USD ${fmt(r.tUSD)}</td><td>AED ${fmt(r.tAED)}</td></tr>`});
   for(let i=0;i<minRows;i++)body+=`<tr class="blank"><td class="col-no"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
   if(filled.length===0&&minRows===0)body=`<tr><td colspan="9" class="l empty-note">Add a line item to begin…</td></tr>`;
 
-  const declText=CONFIG.declarations[inv.decl]||CONFIG.declarations.export;
+  const dtR2=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
+  const declText=dtR2.decl?(CONFIG.declarations[dtR2.decl]||''):'';
   const fxStamp=inv.dateInvoice?(' (as at '+dmy(inv.dateInvoice)+')'):'';
   let acct;
   if(inv.remit==='aed')acct=`A/c # (AED) ${BANK.aedAc}`;
@@ -483,7 +484,7 @@ function render(){
     <th class="col-qty">Qty</th><th>Unit Price<br>(USD)</th><th>Net Taxable<br>Value (USD)</th><th>VAT<br>Rate</th>
     <th>VAT Amount<br>(USD)</th><th>Total Sales<br>Amount (USD)</th><th>Total Sales<br>Amount (AED)</th></tr></thead><tbody>${body}</tbody></table>
 
-  <div class="decl"><div class="h">Declaration</div><p>${declText}<br>${CONFIG.fx.label} = ${c.rate}${fxStamp}</p></div>
+  ${declText?`<div class="decl"><div class="h">Declaration</div><p>${declText}<br>${CONFIG.fx.label} = ${c.rate}${fxStamp}</p></div>`:`<div class="decl"><div class="h">Declaration</div><p>${CONFIG.fx.label} = ${c.rate}${fxStamp}</p></div>`}
   <div class="rule"></div>
 
   <div class="totwrap">
@@ -590,7 +591,7 @@ function bind(){
     ourRef:'ourRef',project:'project',custId:'custId',attention:'attention',yourRef:'yourRef',poNumber:'poNumber',
     billName:'billName',billAddr:'billAddr',delName:'delName',delAddr:'delAddr'};
   Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);el.addEventListener('input',()=>{inv[key]=el.value;recompute()})});
-  ['terms','decl','rate','remit'].forEach(id=>{const el=document.getElementById(id);el.addEventListener('change',()=>{inv[id]=el.value;recompute()})});
+  ['terms','rate','remit'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',()=>{inv[id]=el.value;recompute()})});
 }
 function syncForm(){
   inv.terms=document.getElementById('terms').value=inv.terms;
@@ -641,7 +642,6 @@ function renderItems(){
         <div class="fld full"><label class="lbl">Description</label><input value="${esc(it.desc)}" oninput="setItem(${i},'desc',this.value)"></div>
         <div class="fld"><label class="lbl">Qty</label><input type="number" min="0" value="${it.qty}" oninput="setItem(${i},'qty',this.value)"></div>
         <div class="fld"><label class="lbl">Unit Price (USD)</label><input type="number" min="0" step="0.01" value="${it.price}" oninput="setItem(${i},'price',this.value)"></div>
-        <div class="fld"><label class="lbl">VAT Rate %</label><input type="number" min="0" step="0.5" value="${it.vat}" oninput="setItem(${i},'vat',this.value)"></div>
         <div class="fld"><label class="lbl">Serial No. <span style="color:var(--mut);font-weight:400">(install)</span></label><input value="${esc(it.serial||'')}" oninput="setItem(${i},'serial',this.value)"></div>
       </div>`;
     wrap.appendChild(div);
@@ -649,7 +649,7 @@ function renderItems(){
 }
 function setItem(i,k,v){inv.items[i][k]=v;render();persist()}
 function pickProduct(i,ci){ci=parseInt(ci);if(ci>=0){const c=catalogue[ci];inv.items[i].part=c.part;inv.items[i].desc=c.desc;inv.items[i].hsn=c.hsn;inv.items[i].price=c.price}renderItems();render();persist()}
-function addItem(){inv.items.push({part:'',desc:'',hsn:'',qty:1,price:0,vat:inv.decl==='domestic'?5:0});renderItems();render();persist()}
+function addItem(){inv.items.push({part:'',desc:'',hsn:'',qty:1,price:0,serial:''});renderItems();render();persist()}
 function rmItem(i){inv.items.splice(i,1);if(!inv.items.length)inv.items.push({part:'',desc:'',hsn:'',qty:1,price:0,vat:0});renderItems();render();persist()}
 
 /* ---------- catalogue UI ---------- */
@@ -836,6 +836,8 @@ function setMode(m){
   else{logBtn.textContent='Attach to Bigin';logBtn.disabled=false;logBtn.style.opacity='';}
   const lb2=document.getElementById('logBtn2');
   if(lb2)lb2.textContent=dt.logStage?('Log to Bigin → '+dt.logStage.stage):'Attach to Bigin';
+  const vn=document.getElementById('vatNote');
+  if(vn)vn.value=dt.pricing?((dt.vatRate||0)+'%'+(dt.vatRate?' (domestic)':' (zero-rated export)')):'n/a — no pricing';
   // pricing-only controls
   document.querySelectorAll('[data-pricing]').forEach(el=>{el.style.display=dt.pricing?'':'none'});
   syncForm();recompute();
