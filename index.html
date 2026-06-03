@@ -133,6 +133,10 @@ table.lines tbody tr.blank td{height:26px}
 .checklist .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:3px 9px;margin-bottom:8px}
 .checklist .ck{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:10px;color:var(--navy)}
 .checklist .ck .box{width:11px;height:11px;border:1.4px solid var(--navy);border-radius:2px;flex:none}
+.sheet .ed{outline:none;border-radius:3px;cursor:text;transition:background .12s;padding:0 2px;margin:0 -2px}
+.sheet .ed:hover{background:#EBF5FD}
+.sheet .ed:focus{background:#EBF5FD;box-shadow:0 0 0 2px rgba(20,120,220,.35)}
+.sheet .ed:empty:before{content:attr(data-ph);color:#c2c8d0}
 
 .totwrap{display:grid;grid-template-columns:1.18fr 1fr;gap:14px;margin-top:0;align-items:start}
 .aiw .band{background:var(--navy);color:#fff;font-weight:500;font-size:10px;padding:6px 10px}
@@ -183,6 +187,8 @@ table.lines tbody tr.blank td{height:26px}
   table.lines thead{display:table-header-group}
   table.lines tr{break-inside:avoid}
   .totwrap,.decl,.remit2,.foot{break-inside:avoid}
+  .sheet .ed{background:none!important;box-shadow:none!important}
+  .sheet .ed:empty:before{content:'—';color:#000}
 }
 </style>
 </head>
@@ -442,27 +448,27 @@ function render(){
 
   document.getElementById('sheet').innerHTML=`
   <div class="hd"><div>${LOGO_LIGHT}</div>
-    <div class="doctitle">${esc(inv.docTitle||'Invoice')}</div></div>
+    <div class="doctitle">${ed('docTitle',inv.docTitle,'Document title')}</div></div>
   <div class="rule"></div>
   <div class="meta">
     <div class="co"><div class="nm">${COMPANY.name}</div><div class="ln">${COMPANY.lines.map(l=>esc(l)).join('<br>')}</div></div>
     <table class="mtbl">
       <tr><td class="k">Date of Invoice</td><td class="v">${dmy(inv.dateInvoice)||'—'}</td></tr>
-      <tr><td class="k">${(CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma).numLabel}</td><td class="v">${esc(inv.docNumber)||'—'}</td></tr>
+      <tr><td class="k">${(CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma).numLabel}</td><td class="v">${ed('docNumber',inv.docNumber,'Number')}</td></tr>
       <tr><td class="k">Date of Supply</td><td class="v">${dmy(inv.dateSupply)||'—'}</td></tr>
-      <tr><td class="k">Our Reference</td><td class="v">${esc(inv.ourRef)||'—'}</td></tr>
-      <tr><td class="k">Project Name</td><td class="v">${esc(inv.project)||'—'}</td></tr>
+      <tr><td class="k">Our Reference</td><td class="v">${ed('ourRef',inv.ourRef,'Our reference')}</td></tr>
+      <tr><td class="k">Project Name</td><td class="v">${ed('project',inv.project,'Project name')}</td></tr>
     </table>
   </div>
   <div class="rule"></div>
   <div class="addrs">
-    <div class="bx"><div class="h">Bill To</div><div class="nm">${esc(inv.billName)||'—'}</div><div class="ln">${esc(inv.billAddr)}</div></div>
-    <div class="bx"><div class="h">Deliver To</div><div class="nm">${esc(inv.delName)||'—'}</div><div class="ln">${esc(inv.delAddr)}</div></div>
+    <div class="bx"><div class="h">Bill To</div><div class="nm">${ed('billName',inv.billName,'Bill to name')}</div><div class="ln">${esc(inv.billAddr)}</div></div>
+    <div class="bx"><div class="h">Deliver To</div><div class="nm">${ed('delName',inv.delName,'Deliver to name')}</div><div class="ln">${esc(inv.delAddr)}</div></div>
     <div class="bx right"><table class="mtbl">
-      <tr><td class="k">Customer ID</td><td class="v">${esc(inv.custId)||'—'}</td></tr>
-      <tr><td class="k">Your Reference</td><td class="v">${esc(inv.yourRef)||'—'}</td></tr>
-      <tr><td class="k">Purchase Order Number</td><td class="v">${esc(inv.poNumber)||'—'}</td></tr>
-      <tr><td class="k">Attention</td><td class="v">${esc(inv.attention)||'—'}</td></tr>
+      <tr><td class="k">Customer ID</td><td class="v">${ed('custId',inv.custId,'Customer ID')}</td></tr>
+      <tr><td class="k">Your Reference</td><td class="v">${ed('yourRef',inv.yourRef,'Your reference')}</td></tr>
+      <tr><td class="k">Purchase Order Number</td><td class="v">${ed('poNumber',inv.poNumber,'PO number')}</td></tr>
+      <tr><td class="k">Attention</td><td class="v">${ed('attention',inv.attention,'Attention')}</td></tr>
       <tr><td class="k">Payment Terms</td><td class="v">${inv.terms}</td></tr>
       <tr><td class="k">Due Date</td><td class="v">${dmy(document.getElementById('dueDate').value)||'—'}</td></tr>
     </table></div>
@@ -506,6 +512,7 @@ function render(){
   </div>`;
 }
 function esc(s){return (s==null?'':String(s)).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}
+function ed(f,v,ph){return `<span class="ed" contenteditable="true" spellcheck="false" data-field="${f}" data-ph="${esc(ph||'')}">${esc(v==null?'':v)}</span>`}
 
 function renderSimpleDoc(dt,c){
   const filled=c.rows.filter(r=>r.filled);
@@ -532,27 +539,27 @@ function renderSimpleDoc(dt,c){
       `</div><div class="rule"></div>`;
   const linesHead=`<tr><th class="col-no">No</th><th class="l">Description</th>${serCol?'<th class="col-ser">Serial No.</th>':''}<th class="col-qty">Qty</th></tr>`;
   document.getElementById('sheet').innerHTML=`
-  <div class="hd"><div>${LOGO_LIGHT}</div><div class="doctitle">${esc(inv.docTitle||dt.title)}</div></div>
+  <div class="hd"><div>${LOGO_LIGHT}</div><div class="doctitle">${ed('docTitle',inv.docTitle,'Document title')}</div></div>
   <div class="rule"></div>
   <div class="meta">
     <div class="co"><div class="nm">${COMPANY.name}</div><div class="ln">${COMPANY.lines.map(l=>esc(l)).join('<br>')}</div></div>
     <table class="mtbl">
       <tr><td class="k">${dt.dateLabel}</td><td class="v">${dmy(inv.dateInvoice)||'—'}</td></tr>
-      <tr><td class="k">${dt.numLabel}</td><td class="v">${esc(inv.docNumber)||'—'}</td></tr>
+      <tr><td class="k">${dt.numLabel}</td><td class="v">${ed('docNumber',inv.docNumber,'Number')}</td></tr>
       ${supplyRow}
-      <tr><td class="k">Our Reference</td><td class="v">${esc(inv.ourRef)||'—'}</td></tr>
-      <tr><td class="k">Project Name</td><td class="v">${esc(inv.project)||'—'}</td></tr>
+      <tr><td class="k">Our Reference</td><td class="v">${ed('ourRef',inv.ourRef,'Our reference')}</td></tr>
+      <tr><td class="k">Project Name</td><td class="v">${ed('project',inv.project,'Project name')}</td></tr>
     </table>
   </div>
   <div class="rule"></div>
   <div class="addrs">
-    <div class="bx"><div class="h">Bill To</div><div class="nm">${esc(inv.billName)||'—'}</div><div class="ln">${esc(inv.billAddr)}</div></div>
-    <div class="bx"><div class="h">Deliver To</div><div class="nm">${esc(inv.delName)||'—'}</div><div class="ln">${esc(inv.delAddr)}</div></div>
+    <div class="bx"><div class="h">Bill To</div><div class="nm">${ed('billName',inv.billName,'Bill to name')}</div><div class="ln">${esc(inv.billAddr)}</div></div>
+    <div class="bx"><div class="h">Deliver To</div><div class="nm">${ed('delName',inv.delName,'Deliver to name')}</div><div class="ln">${esc(inv.delAddr)}</div></div>
     <div class="bx right"><table class="mtbl">
-      <tr><td class="k">Customer ID</td><td class="v">${esc(inv.custId)||'—'}</td></tr>
-      <tr><td class="k">Your Reference</td><td class="v">${esc(inv.yourRef)||'—'}</td></tr>
-      <tr><td class="k">Purchase Order Number</td><td class="v">${esc(inv.poNumber)||'—'}</td></tr>
-      <tr><td class="k">Attention</td><td class="v">${esc(inv.attention)||'—'}</td></tr>
+      <tr><td class="k">Customer ID</td><td class="v">${ed('custId',inv.custId,'Customer ID')}</td></tr>
+      <tr><td class="k">Your Reference</td><td class="v">${ed('yourRef',inv.yourRef,'Your reference')}</td></tr>
+      <tr><td class="k">Purchase Order Number</td><td class="v">${ed('poNumber',inv.poNumber,'PO number')}</td></tr>
+      <tr><td class="k">Attention</td><td class="v">${ed('attention',inv.attention,'Attention')}</td></tr>
     </table></div>
   </div>
   <div class="rule"></div>
@@ -896,6 +903,13 @@ async function logToBigin(){
 function init(){
   const draft=load('draft',null);if(draft&&draft.items)inv=draft;
   bind();initCustomerSearch();initDocTypes();renderCat();renderItems();setMode(inv.mode||'proforma');goStep(1);
+  const sheetEl=document.getElementById('sheet');
+  sheetEl.addEventListener('input',e=>{const el=e.target.closest('.ed');if(!el)return;
+    const f=el.getAttribute('data-field');if(!f)return;
+    inv[f]=el.textContent.replace(/\u00a0/g,' ');
+    const pin=document.getElementById(f);if(pin&&'value'in pin)pin.value=inv[f];
+    persist();if(curStep===4&&typeof renderReview==='function')renderReview();});
+  sheetEl.addEventListener('keydown',e=>{const el=e.target.closest('.ed');if(el&&e.key==='Enter'){e.preventDefault();el.blur();}});
 }
 init();
 </script>
