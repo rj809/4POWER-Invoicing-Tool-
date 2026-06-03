@@ -140,7 +140,7 @@ table.lines tbody tr.blank td{height:26px}
 
 .totwrap{display:grid;grid-template-columns:1.18fr 1fr;gap:14px;margin-top:0;align-items:start}
 .aiw .band{background:var(--navy);color:#fff;font-weight:500;font-size:10px;padding:6px 10px}
-.aiw .r{display:grid;grid-template-columns:auto 1fr;border-bottom:1px solid var(--bds)}
+.aiw .r{display:grid;grid-template-columns:185px 1fr;border-bottom:1px solid var(--bds)}
 .aiw .r .k{background:var(--cream);font-weight:400;font-size:9.5px;padding:6px 10px;white-space:nowrap}
 .aiw .r .v{font-weight:400;font-size:9.5px;padding:6px 10px}
 .sums table{width:100%;border-collapse:collapse}
@@ -228,7 +228,7 @@ table.lines tbody tr.blank td{height:26px}
       <div class="fld"><label>Date of Supply</label><input id="dateSupply" type="date"></div>
     </div>
     <div class="row2">
-      <div class="fld"><label>Our Reference</label><input id="ourRef" placeholder="—"></div>
+      <div class="fld"><label>Our Reference <span style="color:var(--mut);font-weight:400">— auto from Bigin</span></label><input id="ourRef" readonly placeholder="Generated on deal creation" style="background:var(--s2)"></div>
       <div class="fld"><label>Project Name</label><input id="project" placeholder="Cash Deposit Machine"></div>
     </div>
 
@@ -271,16 +271,21 @@ table.lines tbody tr.blank td{height:26px}
     <div class="eyebrow">Terms &amp; settings</div>
     <div class="row2">
       <div class="fld"><label>Payment Terms</label>
-        <select id="terms" onchange="recompute()">
-          <option>Advance</option><option>Net 15</option><option selected>Net 30</option>
+        <input id="terms" list="termsList" placeholder="Net 30" oninput="recompute()" onchange="recompute()">
+        <datalist id="termsList">
+          <option>Advance</option><option>Net 15</option><option>Net 30</option>
           <option>Net 45</option><option>Net 60</option><option>Net 90</option>
-        </select>
+        </datalist>
       </div>
       <div class="fld"><label>Due Date (auto)</label><input id="dueDate" readonly style="background:var(--s2)"></div>
     </div>
     <div class="row2">
       <div class="fld"><label>VAT (set by document type)</label><input id="vatNote" readonly style="background:var(--s2)"></div>
       <div class="fld"><label>USD → AED rate</label><input id="rate" type="number" step="0.0001" placeholder="e.g. 3.6725" oninput="recompute()"></div>
+    </div>
+    <div class="fld" id="cifWrap" style="display:none">
+      <label>Freight &amp; Insurance (USD) <span style="color:var(--mut);font-weight:400">— added to FOB to give CIF</span></label>
+      <input id="freightIns" type="number" min="0" step="0.01" placeholder="0.00" oninput="recompute()">
     </div>
     <div class="fld"><label>Remit account shown</label>
       <select id="remit" onchange="recompute()">
@@ -387,7 +392,7 @@ function blank(mode){
     dateInvoice:iso,dateSupply:'',ourRef:'',project:'',
     custId:'',attention:'',yourRef:'',poNumber:'',
     billName:'',billAddr:'',delName:'',delAddr:'',
-    terms:CONFIG.defaults.terms,decl:CONFIG.defaults.decl,rate:CONFIG.fx.default,remit:CONFIG.defaults.remit,
+    terms:CONFIG.defaults.terms,decl:CONFIG.defaults.decl,rate:CONFIG.fx.default,remit:CONFIG.defaults.remit,freightIns:'',
     items:[{part:'',desc:'',hsn:'',qty:1,price:0,vat:0}]};
 }
 function load(k,d){try{const v=localStorage.getItem('4p_inv_'+k);return v?JSON.parse(v):d}catch(e){return d}}
@@ -418,7 +423,8 @@ function compute(){
     return{...it,filled,net,vr:vrate,vatAmt,tUSD,tAED};
   });
   const totUSD=netT+vatT, totAED=totUSD*rate;
-  return{rate,vrate,rows,netT,vatT,totUSD,totAED};
+  const cif=parseFloat(inv.freightIns)||0, cifUSD=netT+cif, cifAED=cifUSD*rate;
+  return{rate,vrate,rows,netT,vatT,totUSD,totAED,cif,cifUSD,cifAED};
 }
 
 /* ---------------- render preview ---------------- */
@@ -461,7 +467,7 @@ function render(){
       <tr><td class="k">Date of Invoice</td><td class="v">${dmy(inv.dateInvoice)||'—'}</td></tr>
       <tr><td class="k">${(CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma).numLabel}</td><td class="v">${ed('docNumber',inv.docNumber,'Number')}</td></tr>
       <tr><td class="k">Date of Supply</td><td class="v">${dmy(inv.dateSupply)||'—'}</td></tr>
-      <tr><td class="k">Our Reference</td><td class="v">${ed('ourRef',inv.ourRef,'Our reference')}</td></tr>
+      <tr><td class="k">Our Reference</td><td class="v">${esc(inv.ourRef)||'—'}</td></tr>
       <tr><td class="k">Project Name</td><td class="v">${ed('project',inv.project,'Project name')}</td></tr>
     </table>
   </div>
@@ -474,7 +480,7 @@ function render(){
       <tr><td class="k">Your Reference</td><td class="v">${ed('yourRef',inv.yourRef,'Your reference')}</td></tr>
       <tr><td class="k">Purchase Order Number</td><td class="v">${ed('poNumber',inv.poNumber,'PO number')}</td></tr>
       <tr><td class="k">Attention</td><td class="v">${ed('attention',inv.attention,'Attention')}</td></tr>
-      <tr><td class="k">Payment Terms</td><td class="v">${inv.terms}</td></tr>
+      <tr><td class="k">Payment Terms</td><td class="v">${ed('terms',inv.terms,'Payment terms')}</td></tr>
       <tr><td class="k">Due Date</td><td class="v">${dmy(document.getElementById('dueDate').value)||'—'}</td></tr>
     </table></div>
   </div>
@@ -488,6 +494,18 @@ function render(){
   <div class="rule"></div>
 
   <div class="totwrap">
+    ${dtR2.cif?`
+    <div class="aiw">
+      <div class="band">Amount in words</div>
+      <div class="r"><span class="k">CIF amount in words (USD)</span><span class="v">${amountWords(c.cifUSD,'USD')}</span></div>
+      <div class="r"><span class="k">CIF amount in words (AED)</span><span class="v">${amountWords(c.cifAED,'AED')}</span></div>
+    </div>
+    <div class="sums"><table>
+      <tr><th class="l"></th><th>USD</th><th>AED</th></tr>
+      <tr><td class="k">FOB Value</td><td>USD ${fmt(c.netT)}</td><td>AED ${fmt(c.netT*c.rate)}</td></tr>
+      <tr><td class="k">Freight &amp; Insurance</td><td>USD ${fmt(c.cif)}</td><td>AED ${fmt(c.cif*c.rate)}</td></tr>
+      <tr class="tot"><td class="k">CIF Value</td><td>USD ${fmt(c.cifUSD)}</td><td>AED ${fmt(c.cifAED)}</td></tr>
+    </table></div>`:`
     <div class="aiw">
       <div class="band">Amount in words</div>
       <div class="r"><span class="k">VAT amount in words</span><span class="v">${amountWords(c.vatT,'USD')}</span></div>
@@ -499,7 +517,7 @@ function render(){
       <tr><td class="k">Net Taxable Value</td><td>USD ${fmt(c.netT)}</td><td>AED ${fmt(c.netT*c.rate)}</td></tr>
       <tr><td class="k">VAT</td><td>${c.vatT?('USD '+fmt(c.vatT)):'-'}</td><td>${c.vatT?('AED '+fmt(c.vatT*c.rate)):'-'}</td></tr>
       <tr class="tot"><td class="k">Total Sales Amount</td><td>USD ${fmt(c.totUSD)}</td><td>AED ${fmt(c.totAED)}</td></tr>
-    </table></div>
+    </table></div>`}
   </div>
   <div class="rule"></div>
 
@@ -552,7 +570,7 @@ function renderSimpleDoc(dt,c){
       <tr><td class="k">${dt.dateLabel}</td><td class="v">${dmy(inv.dateInvoice)||'—'}</td></tr>
       <tr><td class="k">${dt.numLabel}</td><td class="v">${ed('docNumber',inv.docNumber,'Number')}</td></tr>
       ${supplyRow}
-      <tr><td class="k">Our Reference</td><td class="v">${ed('ourRef',inv.ourRef,'Our reference')}</td></tr>
+      <tr><td class="k">Our Reference</td><td class="v">${esc(inv.ourRef)||'—'}</td></tr>
       <tr><td class="k">Project Name</td><td class="v">${ed('project',inv.project,'Project name')}</td></tr>
     </table>
   </div>
@@ -595,11 +613,11 @@ function bind(){
 }
 function syncForm(){
   inv.terms=document.getElementById('terms').value=inv.terms;
-  ['docTitle','docNumber','dateInvoice','dateSupply','ourRef','project','custId','attention','yourRef','poNumber','billName','billAddr','delName','delAddr','rate','decl','remit'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=inv[id]});
+  ['docTitle','docNumber','dateInvoice','dateSupply','ourRef','project','custId','attention','yourRef','poNumber','billName','billAddr','delName','delAddr','rate','decl','remit','freightIns'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=inv[id]});
   document.getElementById('terms').value=inv.terms;
 }
 function recompute(){
-  ['terms','decl','rate','remit','docNumber','docTitle','ourRef','project','custId','attention','yourRef','poNumber','billName','billAddr','delName','delAddr','dateInvoice','dateSupply'].forEach(id=>{const el=document.getElementById(id);if(el&&id in inv)inv[id]=el.value});
+  ['terms','rate','remit','freightIns','docNumber','docTitle','project','custId','attention','yourRef','poNumber','billName','billAddr','delName','delAddr','dateInvoice','dateSupply'].forEach(id=>{const el=document.getElementById(id);if(el&&id in inv)inv[id]=el.value});
   // due date
   const t=inv.terms, di=inv.dateInvoice;
   let due='';
@@ -838,6 +856,7 @@ function setMode(m){
   if(lb2)lb2.textContent=dt.logStage?('Log to Bigin → '+dt.logStage.stage):'Attach to Bigin';
   const vn=document.getElementById('vatNote');
   if(vn)vn.value=dt.pricing?((dt.vatRate||0)+'%'+(dt.vatRate?' (domestic)':' (zero-rated export)')):'n/a — no pricing';
+  const cw=document.getElementById('cifWrap');if(cw)cw.style.display=dt.cif?'':'none';
   // pricing-only controls
   document.querySelectorAll('[data-pricing]').forEach(el=>{el.style.display=dt.pricing?'':'none'});
   syncForm();recompute();
@@ -952,6 +971,7 @@ function init(){
     const pin=document.getElementById(f);if(pin&&'value'in pin)pin.value=inv[f];
     persist();if(curStep===4&&typeof renderReview==='function')renderReview();});
   sheetEl.addEventListener('keydown',e=>{const el=e.target.closest('.ed');if(el&&e.key==='Enter'){e.preventDefault();el.blur();}});
+  sheetEl.addEventListener('focusout',e=>{const el=e.target.closest&&e.target.closest('.ed');if(el&&el.getAttribute('data-field')==='terms')recompute();});
 }
 init();
 </script>
