@@ -253,6 +253,10 @@ table.lines tbody tr.blank td{height:26px}
       <label>Link a Bigin deal <span style="color:var(--mut);font-weight:400">— fills Our Ref</span></label>
       <select id="dealSel" onchange="pickDeal()"></select>
     </div>
+    <div class="fld" id="createDealWrap" style="display:none">
+      <button class="btn btn-g" id="createDealBtn" onclick="createBiginDeal()" style="width:100%">Create new deal in Bigin → generate Our Ref</button>
+      <div class="hint">No existing deal? Create one at Quotations · Submit Quotation. Bigin assigns the Our Reference automatically.</div>
+    </div>
     <div class="row2">
       <div class="fld"><label>Your Reference</label><input id="yourRef" placeholder="—"></div>
       <div class="fld"><label>PO Number</label><input id="poNumber" placeholder="—"></div>
@@ -667,6 +671,7 @@ function rmCat(i){catalogue.splice(i,1);save('cat',catalogue);renderCat();render
 const BRIDGE='https://launch4power.app.n8n.cloud/webhook/bigin-bridge';
 let liveCompanies=[];   // last deduped live search results
 let activeBiginId='';   // Bigin account id of the picked customer
+let activeBiginName=''; // Bigin account name of the picked customer
 let activeDealId='';    // Bigin deal id of the linked deal (Phase 3 write-back)
 let activeDeal=null;    // {id,name,stage,pipeline,...} of the linked deal
 let custSrch=null;      // debounce handle
@@ -753,6 +758,7 @@ function resetSubPickers(){
   const cs=document.getElementById('contactSel');const dw=document.getElementById('dealWrap');
   if(cs){cs.style.display='none';cs.innerHTML=''}
   if(dw){dw.style.display='none'}
+  const cw=document.getElementById('createDealWrap');if(cw)cw.style.display='none';
 }
 function composeAddr(c){
   const l2=[c.billCity,c.billState].filter(Boolean).join(', ');
@@ -768,12 +774,13 @@ function selectCompany(o){
     syncForm();recompute();return;
   }
   const c=liveCompanies[o.i];if(!c)return; // live Bigin pick
-  activeBiginId=c.id;
+  activeBiginId=c.id;activeBiginName=c.name||'';
   const addr=composeAddr(c); // empty in Bigin → typed manually
   inv.custId='';inv.attention='';
   inv.billName=c.name;inv.billAddr=addr;
   inv.delName=c.name;inv.delAddr=addr;
   syncForm();recompute();
+  const cw=document.getElementById('createDealWrap');if(cw)cw.style.display='';
   loadContacts(c.id);loadDeals(c.id);
 }
 async function loadContacts(id){
@@ -862,6 +869,37 @@ function saveJSON(){const blob=new Blob([JSON.stringify(inv,null,2)],{type:'appl
   a.download=(inv.docNumber||inv.mode)+'.json';a.click()}
 function loadJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();
   r.onload=()=>{try{inv=JSON.parse(r.result);setMode(inv.mode||'proforma');renderItems();syncForm();recompute()}catch(err){alert('Could not read file.')}};r.readAsText(f);e.target.value=''}
+async function createBiginDeal(){
+  if(!activeBiginId){
+    alert('Select a live Bigin customer first (search and pick a result), then create the deal.');
+    return;
+  }
+  if(activeDealId){
+    if(!confirm('A deal is already linked. Create another new deal in Bigin anyway?'))return;
+  }
+  const dtLabel=(CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma).label;
+  const name=(inv.project&&inv.project.trim())||((activeBiginName||inv.billName||'New')+' — '+dtLabel);
+  if(!confirm('Create a new opportunity in Bigin\n\n“'+name+'”\nfor '+(activeBiginName||inv.billName||'this customer')+'\nat Quotations : Submit Quotation.\n\nBigin will assign the Our Reference. Proceed?'))return;
+  const btn=document.getElementById('createDealBtn');const lbl=btn.textContent;
+  btn.disabled=true;btn.textContent='Creating in Bigin…';
+  try{
+    const res=await bridge({action:'create_deal',account:activeBiginId,name,pipeline:'Quotations',stage:'Submit Quotation'});
+    if(res&&res.ok&&res.id){
+      activeDealId=res.id;
+      activeDeal={id:res.id,name:res.name||name,stage:res.stage||'Submit Quotation',pipeline:'Quotations',ourRef:res.ourRef||''};
+      if(res.ourRef)inv.ourRef=res.ourRef;
+      syncForm();recompute();
+      btn.textContent='Created ✓';setTimeout(()=>{btn.disabled=false;btn.textContent=lbl;},2500);
+      alert('Deal created in Bigin.\n\nOur Reference: '+(res.ourRef||'(assigned — refresh the deal in Bigin if blank)'));
+    }else{
+      btn.disabled=false;btn.textContent=lbl;
+      alert('Could not create the deal in Bigin'+(res&&res.message?(':\n'+res.message):'.')+'\n\nIf this was just set up, the bridge may still need its credential attached and publishing.');
+    }
+  }catch(e){
+    btn.disabled=false;btn.textContent=lbl;
+    alert('Could not reach the Bigin bridge.\n\n'+(e&&e.message?e.message:''));
+  }
+}
 async function logToBigin(){
   if(!activeDealId){
     alert('Link a Bigin deal first.\n\nSearch the customer, pick a live result, then choose the deal under “Link a Bigin deal”. The selected deal is the record that will be moved.');
@@ -901,7 +939,9 @@ async function logToBigin(){
 
 /* ---------- init ---------- */
 function init(){
-  const draft=load('draft',null);if(draft&&draft.items)inv=draft;
+  // Always start blank on load / hard refresh — do not restore previous document.
+  try{localStorage.removeItem('4p_inv_draft')}catch(e){}
+  inv=blank('proforma');
   bind();initCustomerSearch();initDocTypes();renderCat();renderItems();setMode(inv.mode||'proforma');goStep(1);
   const sheetEl=document.getElementById('sheet');
   sheetEl.addEventListener('input',e=>{const el=e.target.closest('.ed');if(!el)return;
