@@ -193,15 +193,17 @@ table.lines tbody tr.blank td{height:26px}
 .empty-note{font-size:10.5px;color:var(--mut);font-style:italic}
 
 @media print{
-  @page{size:A4;margin:0 0 15mm 0;
+  @page{size:A4;margin:0 0 12mm 0;
+    @bottom-left{content:"";background:#0B1C3E}
+    @bottom-center{content:"";background:#0B1C3E}
     @bottom-right{content:"Page " counter(page) " of " counter(pages);
-      font-family:'Poppins',sans-serif;font-size:9.5px;font-weight:500;color:#0B1C3E;padding:0 13mm 6mm 0}}
+      background:#0B1C3E;color:#fff;font-family:'Poppins',sans-serif;font-size:9px;font-weight:500;text-align:right;padding:0 13mm 0 0}}
   body{background:#fff;display:block;height:auto;overflow:visible}
   .sheet,.sheet *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   .topbar,.controls,.setbar{display:none!important}
   .layout{display:block;height:auto}
   .stage{padding:0;overflow:visible;background:#fff;display:block}
-  .sheet{width:auto;min-height:278mm;box-shadow:none;padding:8mm 13mm 26mm;font-size:10px}
+  .sheet{width:auto;min-height:285mm;box-shadow:none;padding:8mm 13mm 32mm;font-size:10px}
   .sheet .hd{padding-bottom:4px}
   .rule{margin:6px 0}
   .sheet .meta{padding-top:2px}
@@ -212,10 +214,10 @@ table.lines tbody tr.blank td{height:26px}
   .decl{margin-top:7px;padding:8px 12px}
   .aiw .band,.sums th{padding:5px 8px}
   .aiw .r .k,.aiw .r .v,.sums td{padding:4px 8px}
-  .foot{position:absolute;left:0;right:0;bottom:0;margin:0;padding:11px 13mm}
-  .foot .ty{font-size:13px;margin-bottom:3px}
-  .foot .lg{font-size:8px;line-height:1.5}
-  .foot .cp{font-size:8px;margin-top:2px}
+  .foot{position:absolute;left:0;right:0;bottom:0;margin:0;padding:18px 13mm 20px}
+  .foot .ty{font-size:14px;margin-bottom:5px}
+  .foot .lg{font-size:8.5px;line-height:1.55}
+  .foot .cp{font-size:8.5px;margin-top:3px}
   table.lines thead{display:table-header-group}
   table.lines tr{break-inside:avoid}
   .totwrap,.decl,.remit2{break-inside:avoid}
@@ -309,11 +311,15 @@ table.lines tbody tr.blank td{height:26px}
     <div class="eyebrow">Terms &amp; settings</div>
     <div class="row2">
       <div class="fld"><label>Payment Terms</label>
-        <input id="terms" list="termsList" placeholder="Net 30" oninput="recompute()" onchange="recompute()">
-        <datalist id="termsList">
-          <option>Advance</option><option>Net 15</option><option>Net 30</option>
-          <option>Net 45</option><option>Net 60</option><option>Net 90</option>
-        </datalist>
+        <select id="terms" onchange="recompute()">
+          <option>Advance</option>
+          <option>Net 15</option>
+          <option selected>Net 30</option>
+          <option>Net 45</option>
+          <option>Net 60</option>
+          <option>Net 90</option>
+          <option>Net 120</option>
+        </select>
       </div>
       <div class="fld"><label>Due Date (auto)</label><input id="dueDate" readonly style="background:var(--s2)"></div>
     </div>
