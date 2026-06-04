@@ -333,9 +333,13 @@ table.lines tbody tr.blank td{height:26px}
       <div class="fld"><label>VAT (set by document type)</label><input id="vatNote" readonly style="background:var(--s2)"></div>
       <div class="fld" id="rateFld"><label class="req">USD → AED rate</label><input id="rate" type="number" step="0.0001" placeholder="e.g. 3.6725" oninput="recompute()"></div>
     </div>
-    <div class="fld" id="cifWrap" style="display:none">
-      <label>Freight &amp; Insurance (USD) <span style="color:var(--mut);font-weight:400">— added to FOB to give CIF</span></label>
-      <input id="freightIns" type="number" min="0" step="0.01" placeholder="0.00" oninput="recompute()">
+    <div id="cifWrap" style="display:none">
+      <div class="row2">
+        <div class="fld"><label>Freight (USD) <span style="color:var(--mut);font-weight:400">— added to FOB</span></label>
+          <input id="freight" type="number" min="0" step="0.01" placeholder="0.00" oninput="recompute()"></div>
+        <div class="fld"><label>Insurance (USD)</label>
+          <input id="insurance" type="number" min="0" step="0.01" placeholder="0.00" oninput="recompute()"></div>
+      </div>
     </div>
     <div class="fld"><label>Remit account shown</label>
       <select id="remit" onchange="recompute()">
@@ -460,7 +464,7 @@ function blank(mode){
     dateInvoice:iso,dateSupply:'',ourRef:'',project:'',
     custId:'',attention:'',yourRef:'',poNumber:'',
     billName:'',billAddr:'',delName:'',delAddr:'',
-    terms:CONFIG.defaults.terms,decl:CONFIG.defaults.decl,rate:CONFIG.fx.default,remit:CONFIG.defaults.remit,freightIns:'',
+    terms:CONFIG.defaults.terms,decl:CONFIG.defaults.decl,rate:CONFIG.fx.default,remit:CONFIG.defaults.remit,freight:'',insurance:'',
     numbers:{},set:[mode],checks:{},aedOnly:false,
     items:[{part:'',desc:'',hsn:'',qty:1,price:0,vat:0}]};
 }
@@ -492,8 +496,8 @@ function compute(){
     return{...it,filled,net,vr:vrate,vatAmt,tUSD,tAED};
   });
   const totUSD=netT+vatT, totAED=totUSD*rate;
-  const cif=parseFloat(inv.freightIns)||0, cifUSD=netT+cif, cifAED=cifUSD*rate;
-  return{rate,vrate,rows,netT,vatT,totUSD,totAED,cif,cifUSD,cifAED};
+  const freight=parseFloat(inv.freight)||0, insurance=parseFloat(inv.insurance)||0, cif=freight+insurance, cifUSD=netT+cif, cifAED=cifUSD*rate;
+  return{rate,vrate,rows,netT,vatT,totUSD,totAED,cif,freight,insurance,cifUSD,cifAED};
 }
 
 /* ---------------- render preview ---------------- */
@@ -572,7 +576,8 @@ function render(){
     <div class="sums"><table>
       <tr><th class="l"></th><th>USD</th><th>AED</th></tr>
       <tr><td class="k">FOB Value</td><td>USD ${fmt(c.netT)}</td><td>AED ${fmt(c.netT*c.rate)}</td></tr>
-      <tr><td class="k">Freight &amp; Insurance</td><td>USD ${fmt(c.cif)}</td><td>AED ${fmt(c.cif*c.rate)}</td></tr>
+      <tr><td class="k">Freight</td><td>USD ${fmt(c.freight)}</td><td>AED ${fmt(c.freight*c.rate)}</td></tr>
+      <tr><td class="k">Insurance</td><td>USD ${fmt(c.insurance)}</td><td>AED ${fmt(c.insurance*c.rate)}</td></tr>
       <tr class="tot"><td class="k">CIF Value</td><td>USD ${fmt(c.cifUSD)}</td><td>AED ${fmt(c.cifAED)}</td></tr>
     </table></div>`:`
     <div class="aiw">
@@ -688,11 +693,11 @@ function bind(){
 }
 function syncForm(){
   inv.terms=document.getElementById('terms').value=inv.terms;
-  ['docTitle','docNumber','dateInvoice','dateSupply','ourRef','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','rate','decl','remit','freightIns'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=inv[id]});
+  ['docTitle','docNumber','dateInvoice','dateSupply','ourRef','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','rate','decl','remit','freight','insurance'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=inv[id]});
   document.getElementById('terms').value=inv.terms;
 }
 function recompute(){
-  ['terms','rate','remit','freightIns','docNumber','docTitle','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','dateInvoice','dateSupply'].forEach(id=>{const el=document.getElementById(id);if(el&&id in inv)inv[id]=el.value});
+  ['terms','rate','remit','freight','insurance','docNumber','docTitle','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','dateInvoice','dateSupply'].forEach(id=>{const el=document.getElementById(id);if(el&&id in inv)inv[id]=el.value});
   // due date
   const t=inv.terms, di=inv.dateInvoice;
   let due='';
