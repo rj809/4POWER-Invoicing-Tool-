@@ -116,7 +116,7 @@ details.cat[open] summary::before{content:'▾ '}
 /* ---------- INVOICE SHEET (print target) ---------- */
 .sheet{width:794px;min-height:1123px;background:#fff;box-shadow:0 6px 30px rgba(11,28,62,.12);position:relative;
   padding:40px 40px 0;display:flex;flex-direction:column;font-family:var(--inv);font-size:11px;color:var(--navy)}
-.sheet .hd{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:8px}
+.sheet .hd{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px}
 .sheet .hd svg{height:50px;width:auto}
 .sheet .doctitle{font-family:var(--inv);font-weight:500;font-size:34px;color:var(--navy);text-align:right;line-height:1;text-transform:capitalize}
 .sheet .doctitle b{font-weight:500}
@@ -214,7 +214,7 @@ table.lines tbody tr.blank td{height:26px}
   .layout{display:block;height:auto}
   .stage{padding:0;overflow:visible;background:#fff;display:block}
   .sheet{display:block;width:auto;min-height:285mm;box-shadow:none;padding:8mm 13mm 0;font-size:10px}
-  .sheet .hd{padding-bottom:0}
+  .sheet .hd{padding-bottom:15px}
   .rule{margin:14px 0}
   .sheet .meta{padding-top:0}
   .sheet .co .ln{font-size:10px}
@@ -274,10 +274,9 @@ table.lines tbody tr.blank td{height:26px}
     </div>
     <div class="row2">
       <div class="fld"><label class="req">Date of Invoice</label><input id="dateInvoice" type="date"></div>
-      <div class="fld"><label id="lblSupply">Date of Supply</label><input id="dateSupply" type="date"></div>
+      <div class="fld"><label>Our Reference <span style="color:var(--mut);font-weight:400">— auto from Bigin</span></label><input id="ourRef" readonly placeholder="Generated on deal creation" style="background:var(--s2)"></div>
     </div>
     <div class="row2">
-      <div class="fld"><label>Our Reference <span style="color:var(--mut);font-weight:400">— auto from Bigin</span></label><input id="ourRef" readonly placeholder="Generated on deal creation" style="background:var(--s2)"></div>
       <div class="fld"><label class="req">Project Name</label><input id="project" class="ph-hint" placeholder="[Insert Project Name]"></div>
     </div>
     <label class="chk" id="companionWrap" style="display:none">
@@ -452,10 +451,10 @@ const CONFIG={
      logStage = where the linked Bigin deal moves when this doc is logged (null = no move). */
   docTypes:{
     quotation:    { label:"Quotation",            title:"QUOTATION",                numLabel:"Quotation #",     footWord:"quotation",            dateLabel:"Date",            showSupply:false, pricing:true,  vatRate:0, decl:null,             cif:false, signoff:false, noNumber:true, logStage:{pipeline:"Quotations",stage:"Submit Quotation"} },
-    proforma:     { label:"Proforma",             title:"PROFORMA INVOICE",         numLabel:"Proforma #",      footWord:"proforma",             dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  vatRate:0, decl:"exportServices", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
-    domestic:     { label:"Domestic Tax Invoice", title:"TAX INVOICE",              numLabel:"Invoice #",       footWord:"tax invoice",          dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  vatRate:5, decl:"domestic",       cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
-    exportgoods:  { label:"Export Invoice — Goods",title:"EXPORT INVOICE",          numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  vatRate:0, decl:"exportGoods",    cif:true,  signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
-    exportservices:{label:"Export Invoice — Services",title:"EXPORT INVOICE",       numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  vatRate:0, decl:"exportServices", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
+    proforma:     { label:"Proforma",             title:"PROFORMA INVOICE",         numLabel:"Proforma #",      footWord:"proforma",             dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, decl:"exportServices", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
+    domestic:     { label:"Domestic Tax Invoice", title:"TAX INVOICE",              numLabel:"Invoice #",       footWord:"tax invoice",          dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:5, decl:"domestic",       cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
+    exportgoods:  { label:"Export Invoice — Goods",title:"EXPORT INVOICE",          numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, decl:"exportGoods",    cif:true,  signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
+    exportservices:{label:"Export Invoice — Services",title:"EXPORT INVOICE",       numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, decl:"exportServices", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
     packingslip:{label:"Packing Slip",title:"PACKING SLIP",    numLabel:"Packing Slip #",  footWord:"packing slip",  dateLabel:"Date",            showSupply:false, pricing:false, signoff:true,  checklist:"packing",  signLeft:"Packed by", signRight:"Received by", logStage:null },
     deliverynote:{label:"Delivery Note",title:"DELIVERY NOTE", numLabel:"Delivery Note #", footWord:"delivery note", dateLabel:"Date",            showSupply:false, pricing:false, signoff:true,  checklist:"delivery", signLeft:"Delivered by", signRight:"Received by", logStage:null },
     installation:{label:"Installation Report",title:"INSTALLATION REPORT",numLabel:"Report #",footWord:"installation report",dateLabel:"Installation Date",showSupply:false,pricing:false,signoff:true,serials:true,checklist:"install",signLeft:"Installed by (Engineer)",signRight:"Accepted by (Customer)",logStage:null }
