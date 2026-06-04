@@ -181,13 +181,16 @@ table.lines tbody tr.blank td{height:26px}
 .decl .h{font-weight:500;font-size:10px;margin-bottom:3px}
 .decl p{font-size:8.5px;font-weight:300;line-height:1.55}
 .remit2{margin-top:0;display:grid;grid-template-columns:1.18fr 1fr;gap:14px;align-items:start}
+.remit2.solo{grid-template-columns:1fr}
+.remit2 .bankg.wide{grid-template-columns:repeat(3,1fr);gap:9px 22px}
+.remit2 .bankg.wide .f.full{grid-column:auto}
 .remit2 .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:4px 9px;margin-bottom:7px}
 .remit2 .bank{font-size:10px;font-weight:300;line-height:1.75}
-.remit2 .bankg{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;align-items:start;margin-top:2px}
-.remit2 .bankg .f{display:flex;flex-direction:column;gap:3px;min-width:0}
+.remit2 .bankg{display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;align-items:start;margin-top:1px}
+.remit2 .bankg .f{display:flex;flex-direction:column;gap:1px;min-width:0}
 .remit2 .bankg .f.full{grid-column:1 / -1}
-.remit2 .bankg .bl{font-family:var(--body);font-weight:700;font-size:7.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--mut);line-height:1}
-.remit2 .bankg .bv{font-family:var(--body);font-weight:500;font-size:10.5px;color:var(--navy);line-height:1.25;word-break:break-word}
+.remit2 .bankg .bl{font-family:var(--body);font-weight:700;font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);line-height:1}
+.remit2 .bankg .bv{font-family:var(--body);font-weight:500;font-size:9.5px;color:var(--navy);line-height:1.2;word-break:break-word}
 .remit2 .remarks{min-height:58px}
 .sheet .remarks{white-space:pre-wrap}
 .sheet .ed.edm{display:block;min-height:46px}
@@ -210,24 +213,26 @@ table.lines tbody tr.blank td{height:26px}
   .topbar,.controls,.setbar{display:none!important}
   .layout{display:block;height:auto}
   .stage{padding:0;overflow:visible;background:#fff;display:block}
-  .sheet{width:auto;min-height:270mm;box-shadow:none;padding:8mm 13mm 28mm;font-size:10px}
+  .sheet{width:auto;min-height:270mm;box-shadow:none;padding:8mm 13mm 24mm;font-size:10px}
   .sheet .hd{padding-bottom:10px}
-  .rule{margin:13px 0}
+  .rule{margin:9px 0}
   .sheet .meta{padding-top:6px}
   table.lines tbody td{padding:8px 5px}
   table.lines tbody tr.blank td{height:11px}
-  .decl{margin-top:11px;padding:10px 12px}
+  .decl{margin-top:8px;padding:9px 12px}
   .aiw .band,.sums th{padding:6px 9px}
-  .aiw .r .k,.aiw .r .v,.sums td{padding:6px 9px}
+  .aiw .r .k,.aiw .r .v{padding:5px 9px;font-size:8.7px;line-height:1.18}
+  .sums td{padding:6px 9px}
   .sums td,.sums th{white-space:nowrap}
   .sums td.k{white-space:normal}
-  .foot{position:absolute;left:0;right:0;bottom:0;margin:0;padding:14px 13mm 16px}
-  .foot .ty{font-size:13.5px;margin-bottom:4px}
+  .foot{position:absolute;left:0;right:0;bottom:0;margin:0;padding:11px 13mm 13px}
+  .foot .ty{font-size:13px;margin-bottom:3px}
   .foot .lg{font-size:8.5px;line-height:1.5}
   .foot .cp{font-size:8.5px;margin-top:3px}
   table.lines thead{display:table-header-group}
   table.lines tr{break-inside:avoid}
   .totwrap,.decl,.remit2{break-inside:avoid}
+  .remit2:not(.solo){break-before:page}
   .sheet .ed{background:none!important;box-shadow:none!important}
   .sheet .ed:empty:before{content:'—';color:#000}
 }
@@ -352,6 +357,8 @@ table.lines tbody tr.blank td{height:26px}
       <div class="fld"><label>Advance received <span style="color:var(--mut);font-weight:400">— after VAT, optional</span></label>
         <input id="advance" type="number" min="0" step="0.01" placeholder="0.00" oninput="recompute()"></div>
     </div>
+    <div class="fld"><label>Additional Remarks <span style="color:var(--mut);font-weight:400">— optional; if left blank, Remit To uses the full width</span></label>
+      <textarea id="remarks" rows="2" placeholder="Delivery terms, warranty, notes…" oninput="recompute()"></textarea></div>
     <div class="fld"><label>Remit account shown</label>
       <select id="remit" onchange="recompute()">
         <option value="both" selected>FAB — AED &amp; USD</option>
@@ -403,8 +410,8 @@ const CONFIG={
   },
   bank:{
     name:"4POWER Infocom FZ LLC",
-    branch:"First Abu Dhabi Bank (FAB)",
-    address:"Sheikh Zayed Road Branch | Dubai, UAE",
+    bankName:"First Abu Dhabi Bank (FAB)",
+    branch:"Sheikh Zayed Road, Dubai, UAE",
     aedAc:"1031 3219 3166 4010", usdAc:"1031 0019 3166 4024",
     aedIban:"AE860330000019100017280", usdIban:"AE 8503 5103 1001 9316 6402 4", swift:"NBADAEAA"
   },
@@ -475,7 +482,7 @@ function blank(mode){
     dateInvoice:iso,dateSupply:'',ourRef:'',project:'',
     custId:'',attention:'',yourRef:'',poNumber:'',
     billName:'',billAddr:'',delName:'',delAddr:'',
-    terms:CONFIG.defaults.terms,decl:CONFIG.defaults.decl,rate:CONFIG.fx.default,remit:CONFIG.defaults.remit,freight:'',insurance:'',discount:'',advance:'',
+    terms:CONFIG.defaults.terms,decl:CONFIG.defaults.decl,rate:CONFIG.fx.default,remit:CONFIG.defaults.remit,freight:'',insurance:'',discount:'',advance:'',remarks:'',
     numbers:{},set:[mode],checks:{},aedOnly:false,
     items:[{part:'',desc:'',hsn:'',qty:1,price:0,vat:0}]};
 }
@@ -522,7 +529,7 @@ function render(){
   const dtR=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
   if(!dtR.pricing){renderSimpleDoc(dtR,c);return;}
   const filled=c.rows.filter(r=>r.filled);
-  const minRows=Math.max(0,4-filled.length);
+  const minRows=Math.max(0,2-filled.length);
   const aed=inv.mode==='domestic'&&!!inv.aedOnly;
   let body='';let n=0;
   filled.forEach(r=>{n++;
@@ -540,16 +547,17 @@ function render(){
   const fxStamp=inv.dateInvoice?(' (as at '+dmy(inv.dateInvoice)+')'):'';
   const showAed=inv.remit!=='usd', showUsd=inv.remit!=='aed';
   const bankFields=[
-    {l:'Account Name',v:BANK.name,full:1},
+    {l:'Account Name',v:BANK.name},
+    {l:'Bank',v:BANK.bankName},
     {l:'Branch',v:BANK.branch,full:1},
-    {l:'Address',v:BANK.address,full:1},
     ...(showAed?[{l:'Account No. (AED)',v:BANK.aedAc}]:[]),
     ...(showUsd?[{l:'Account No. (US$)',v:BANK.usdAc}]:[]),
-    ...(showAed?[{l:'IBAN (AED)',v:BANK.aedIban,full:1}]:[]),
-    ...(showUsd?[{l:'IBAN (US$)',v:BANK.usdIban,full:1}]:[]),
+    ...(showAed?[{l:'IBAN (AED)',v:BANK.aedIban}]:[]),
+    ...(showUsd?[{l:'IBAN (US$)',v:BANK.usdIban}]:[]),
     {l:'SWIFT',v:BANK.swift},
   ];
   const bankHtml=bankFields.map(f=>`<div class="f${f.full?' full':''}"><span class="bl">${esc(f.l)}</span><span class="bv">${esc(f.v)}</span></div>`).join('');
+  const hasRemarks=(inv.remarks||'').trim()!=='';
 
   document.getElementById('sheet').innerHTML=`
   <div class="hd"><div>${LOGO_LIGHT}</div>
@@ -631,10 +639,14 @@ function render(){
   </div>
   <div class="rule"></div>
 
-  <div class="remit2">
-    <div><div class="h">Additional Remarks</div><div class="ed edm remarks ln" contenteditable="true" spellcheck="false" data-field="remarks" data-ph="Add remarks…">${esc(inv.remarks||'')}</div></div>
+  ${hasRemarks
+    ? `<div class="remit2">
+    <div><div class="h">Additional Remarks</div><div class="ed edm remarks ln" contenteditable="true" spellcheck="false" data-field="remarks" data-ph="Add remarks…">${esc(inv.remarks)}</div></div>
     <div><div class="h">Remit To</div><div class="bankg">${bankHtml}</div></div>
-  </div>
+  </div>`
+    : `<div class="remit2 solo">
+    <div><div class="h">Remit To</div><div class="bankg wide">${bankHtml}</div></div>
+  </div>`}
   <div class="rule"></div>
 
   <div class="foot">
@@ -700,10 +712,14 @@ function renderSimpleDoc(dt,c){
   <div class="rule"></div>
   <table class="lines"><thead>${linesHead}</thead><tbody>${body}</tbody></table>
   <div class="rule"></div>
-  <div class="remit2">
-    <div><div class="h">Additional Remarks</div><div class="ed edm remarks ln" contenteditable="true" spellcheck="false" data-field="remarks" data-ph="Add remarks…">${esc(inv.remarks||'')}</div></div>
+  ${(inv.remarks||'').trim()!==''
+    ? `<div class="remit2">
+    <div><div class="h">Additional Remarks</div><div class="ed edm remarks ln" contenteditable="true" spellcheck="false" data-field="remarks" data-ph="Add remarks…">${esc(inv.remarks)}</div></div>
     <div><div class="h">Summary</div><div class="bank">Total line items: ${filled.length}<br>Total quantity: ${totQty}</div></div>
-  </div>
+  </div>`
+    : `<div class="remit2 solo">
+    <div><div class="h">Summary</div><div class="bank">Total line items: ${filled.length}<br>Total quantity: ${totQty}</div></div>
+  </div>`}
   <div class="rule"></div>
   ${checklist}
   ${signoff}
@@ -725,11 +741,11 @@ function bind(){
 }
 function syncForm(){
   inv.terms=document.getElementById('terms').value=inv.terms;
-  ['docTitle','docNumber','dateInvoice','dateSupply','ourRef','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','rate','decl','remit','freight','insurance','discount','advance'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=inv[id]});
+  ['docTitle','docNumber','dateInvoice','dateSupply','ourRef','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','rate','decl','remit','freight','insurance','discount','advance','remarks'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=inv[id]});
   document.getElementById('terms').value=inv.terms;
 }
 function recompute(){
-  ['terms','rate','remit','freight','insurance','discount','advance','docNumber','docTitle','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','dateInvoice','dateSupply'].forEach(id=>{const el=document.getElementById(id);if(el&&id in inv)inv[id]=el.value});
+  ['terms','rate','remit','freight','insurance','discount','advance','remarks','docNumber','docTitle','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','dateInvoice','dateSupply'].forEach(id=>{const el=document.getElementById(id);if(el&&id in inv)inv[id]=el.value});
   // due date
   const t=inv.terms, di=inv.dateInvoice;
   let due='';
