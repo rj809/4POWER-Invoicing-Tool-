@@ -14,7 +14,7 @@
   --s1:#F5F4F0; --s2:#EDECE7; --s3:#E2E0D8; --white:#fff;
   --tx:#0B1C3E; --tx2:#4A5568; --mut:#8A93A2; --bd:#D8D6CE; --bds:#E8E6DF;
   --r:8px; --disp:'Raleway',sans-serif; --body:'Manrope',sans-serif; --inv:'Poppins',sans-serif;
-  --cream:#F4F2EC; --totlime:#A3E634; --ftsub:#B7C5DC; --ftcopy:#8FA3C2;
+  --cream:#F4F2EC; --limetint:#EAF4CE; --totlime:#A3E634; --ftsub:#B7C5DC; --ftcopy:#8FA3C2;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--body);background:var(--s2);color:var(--tx);font-size:14px;line-height:1.45;display:flex;flex-direction:column;height:100vh;overflow:hidden}
@@ -112,7 +112,7 @@ details.cat[open] summary::before{content:'▾ '}
 .miniadd{margin:8px 0 12px;border:0;background:var(--s2);border-radius:6px;padding:7px 12px;font-weight:600;cursor:pointer;font-size:12px}
 
 /* ---------- INVOICE SHEET (print target) ---------- */
-.sheet{width:794px;min-height:1123px;background:#fff;box-shadow:0 6px 30px rgba(11,28,62,.12);
+.sheet{width:794px;min-height:1123px;background:#fff;box-shadow:0 6px 30px rgba(11,28,62,.12);position:relative;
   padding:40px 40px 0;display:flex;flex-direction:column;font-family:var(--inv);font-size:11px;color:var(--navy)}
 .sheet .hd{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:8px}
 .sheet .hd svg{height:50px;width:auto}
@@ -127,7 +127,8 @@ details.cat[open] summary::before{content:'▾ '}
 .mtbl td{vertical-align:middle}
 .mtbl td.k{background:var(--cream);color:var(--navy);font-weight:500;font-size:10px;padding:5px 9px;width:160px;white-space:nowrap}
 .mtbl td.v{padding:5px 9px;font-weight:400;font-size:11px;color:var(--navy);text-align:left}
-.rule{height:2px;background:var(--lime);border:0;margin:18px 0}
+.rule{height:0;background:none;border:0;margin:14px 0}
+.meta .mtbl td.k{background:var(--limetint)}
 
 .addrs{display:grid;grid-template-columns:1fr 1fr 330px;gap:18px;padding:0;align-items:start}
 .addrs .bx .h{display:inline-block;background:var(--cream);font-weight:500;font-size:11px;color:var(--navy);padding:3px 9px;margin-bottom:6px}
@@ -193,30 +194,32 @@ table.lines tbody tr.blank td{height:26px}
 .empty-note{font-size:10.5px;color:var(--mut);font-style:italic}
 
 @media print{
-  @page{size:A4;margin:0 0 8mm 0;
+  @page{size:A4;margin:0 0 15mm 0;
     @bottom-right{content:"Page " counter(page) " of " counter(pages);
-      font-family:'Poppins',sans-serif;font-size:8px;color:#0B1C3E;padding:0 13mm 4mm 0}}
+      font-family:'Poppins',sans-serif;font-size:9.5px;font-weight:500;color:#0B1C3E;padding:0 13mm 6mm 0}}
   body{background:#fff;display:block;height:auto;overflow:visible}
   .sheet,.sheet *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   .topbar,.controls,.setbar{display:none!important}
   .layout{display:block;height:auto}
   .stage{padding:0;overflow:visible;background:#fff;display:block}
-  .sheet{width:auto;min-height:auto;box-shadow:none;padding:8mm 13mm 18mm;font-size:10px}
+  .sheet{width:auto;min-height:278mm;box-shadow:none;padding:8mm 13mm 26mm;font-size:10px}
   .sheet .hd{padding-bottom:4px}
   .rule{margin:6px 0}
   .sheet .meta{padding-top:2px}
+  .mtbl td.k,.mtbl td.v{padding:3px 9px}
+  .mtbl{border-spacing:0 2px}
   table.lines tbody td{padding:6px 5px}
   table.lines tbody tr.blank td{height:9px}
   .decl{margin-top:7px;padding:8px 12px}
   .aiw .band,.sums th{padding:5px 8px}
   .aiw .r .k,.aiw .r .v,.sums td{padding:4px 8px}
-  .foot{position:fixed;left:0;right:0;bottom:0;margin:0;padding:7px 13mm}
-  .foot .ty{font-size:12.5px;margin-bottom:2px}
-  .foot .lg{font-size:8px;line-height:1.45}
-  .foot .cp{font-size:8px;margin-top:1px}
+  .foot{position:absolute;left:0;right:0;bottom:0;margin:0;padding:11px 13mm}
+  .foot .ty{font-size:13px;margin-bottom:3px}
+  .foot .lg{font-size:8px;line-height:1.5}
+  .foot .cp{font-size:8px;margin-top:2px}
   table.lines thead{display:table-header-group}
   table.lines tr{break-inside:avoid}
-  .totwrap,.decl,.remit2,.foot{break-inside:avoid}
+  .totwrap,.decl,.remit2{break-inside:avoid}
   .sheet .ed{background:none!important;box-shadow:none!important}
   .sheet .ed:empty:before{content:'—';color:#000}
 }
