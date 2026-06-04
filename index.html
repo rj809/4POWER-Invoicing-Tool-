@@ -1019,16 +1019,25 @@ async function createBiginDeal(){
     alert('Bigin requires a primary contact on every deal.\n\nPick the Attention contact from the dropdown first. If this customer has no contact in Bigin, add one there, then search the customer again.');
     return;
   }
+  if(!inv.project||!inv.project.trim()){
+    alert('Add a Project Name before creating the deal.\n\nIt becomes the opportunity name in Bigin (e.g. “CDM404 — 10 Units”), so every deal stays identifiable in the pipeline.');
+    goStep(1);const pj=document.getElementById('project');if(pj)pj.focus();
+    return;
+  }
   if(activeDealId){
     if(!confirm('A deal is already linked. Create another new deal in Bigin anyway?'))return;
   }
-  const dtLabel=(CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma).label;
-  const name=(inv.project&&inv.project.trim())||((activeBiginName||inv.billName||'New')+' — '+dtLabel);
-  if(!confirm('Create a new opportunity in Bigin\n\n“'+name+'”\nfor '+(activeBiginName||inv.billName||'this customer')+'\nat Quotations : Submit Quotation.\n\nBigin will assign the Our Reference. Proceed?'))return;
+  const c=compute();const amtAED=Math.round(c.totAED||0);
+  if(amtAED<=0){
+    if(!confirm('No priced line items yet, so the deal will be created with no value.\n\nAdd items first to capture the amount in Bigin, or proceed without a value (you can set it later).'))return;
+  }
+  const name=inv.project.trim()+' — '+(activeBiginName||inv.billName||'Customer');
+  const amtLine=amtAED>0?('\nAmount: AED '+amtAED.toLocaleString('en-AE')):'';
+  if(!confirm('Create a new opportunity in Bigin\n\n“'+name+'”\nfor '+(activeBiginName||inv.billName||'this customer')+amtLine+'\nat Quotations : Submit Quotation.\n\nBigin will assign the Our Reference. Proceed?'))return;
   const btn=document.getElementById('createDealBtn');const lbl=btn.textContent;
   btn.disabled=true;btn.textContent='Creating in Bigin…';
   try{
-    const res=await bridge({action:'create_deal',account:activeBiginId,contact:activeContactId,name,pipeline:'Quotations',stage:'Submit Quotation'});
+    const res=await bridge(Object.assign({action:'create_deal',account:activeBiginId,contact:activeContactId,name,pipeline:'Quotations',stage:'Submit Quotation'},amtAED>0?{amount:amtAED}:{}));
     if(res&&res.ok&&res.id){
       activeDealId=res.id;
       activeDeal={id:res.id,name:res.name||name,stage:res.stage||'Submit Quotation',pipeline:'Quotations',ourRef:res.ourRef||''};
