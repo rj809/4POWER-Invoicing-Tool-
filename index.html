@@ -71,6 +71,8 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .eyebrow:first-child{margin-top:0}
 .fld{margin-bottom:11px}
 .fld label{display:block;font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:4px;letter-spacing:.01em}
+.fld label.req::after{content:" *";color:#EF4444;font-weight:800}
+.fld input.ph-hint::placeholder{font-size:11px;font-style:italic;color:var(--mut)}
 .fld input,.fld select,.fld textarea{width:100%;border:1.5px solid var(--bd);border-radius:7px;padding:8px 10px;background:#fff;transition:.12s}
 .fld input:focus,.fld select:focus,.fld textarea:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue) inset;box-shadow:0 0 0 3px rgba(20,120,220,.12)}
 .fld textarea{resize:vertical;min-height:64px}
@@ -257,15 +259,15 @@ table.lines tbody tr.blank td{height:26px}
     <div class="eyebrow">Document</div>
     <div class="row2">
       <div class="fld"><label id="lblTitle">Document Title</label><input id="docTitle"></div>
-      <div class="fld"><label id="lblNum">Reference No.</label><input id="docNumber" placeholder="Type reference"></div>
+      <div class="fld"><label id="lblNum" class="req">Reference No.</label><input id="docNumber" placeholder="Type reference"></div>
     </div>
     <div class="row2">
-      <div class="fld"><label>Date of Invoice</label><input id="dateInvoice" type="date"></div>
-      <div class="fld"><label>Date of Supply</label><input id="dateSupply" type="date"></div>
+      <div class="fld"><label class="req">Date of Invoice</label><input id="dateInvoice" type="date"></div>
+      <div class="fld"><label id="lblSupply">Date of Supply</label><input id="dateSupply" type="date"></div>
     </div>
     <div class="row2">
       <div class="fld"><label>Our Reference <span style="color:var(--mut);font-weight:400">— auto from Bigin</span></label><input id="ourRef" readonly placeholder="Generated on deal creation" style="background:var(--s2)"></div>
-      <div class="fld"><label>Project Name</label><input id="project" placeholder="Cash Deposit Machine"></div>
+      <div class="fld"><label class="req">Project Name</label><input id="project" class="ph-hint" placeholder="[Insert Project Name]"></div>
     </div>
     <label class="chk" id="companionWrap" style="display:none">
       <input type="checkbox" id="companionChk" onchange="toggleCompanions(this.checked)">
@@ -305,8 +307,8 @@ table.lines tbody tr.blank td{height:26px}
       <div class="fld"><label>Your Reference</label><input id="yourRef" placeholder="—"></div>
       <div class="fld"><label>PO Number</label><input id="poNumber" placeholder="—"></div>
     </div>
-    <div class="fld"><label>Bill To (name)</label><input id="billName"></div>
-    <div class="fld"><label>Bill To (address)</label><textarea id="billAddr"></textarea></div>
+    <div class="fld"><label class="req">Bill To (name)</label><input id="billName"></div>
+    <div class="fld"><label class="req">Bill To (address)</label><textarea id="billAddr"></textarea></div>
     <div class="fld"><label>Deliver To (name)</label><input id="delName"></div>
     <div class="fld"><label>Deliver To (address)</label><textarea id="delAddr"></textarea></div>
 
@@ -329,7 +331,7 @@ table.lines tbody tr.blank td{height:26px}
     </div>
     <div class="row2">
       <div class="fld"><label>VAT (set by document type)</label><input id="vatNote" readonly style="background:var(--s2)"></div>
-      <div class="fld" id="rateFld"><label>USD → AED rate</label><input id="rate" type="number" step="0.0001" placeholder="e.g. 3.6725" oninput="recompute()"></div>
+      <div class="fld" id="rateFld"><label class="req">USD → AED rate</label><input id="rate" type="number" step="0.0001" placeholder="e.g. 3.6725" oninput="recompute()"></div>
     </div>
     <div class="fld" id="cifWrap" style="display:none">
       <label>Freight &amp; Insurance (USD) <span style="color:var(--mut);font-weight:400">— added to FOB to give CIF</span></label>
@@ -708,12 +710,13 @@ function validate(){
   if(!inv.docNumber||!inv.docNumber.trim())it.push(docLabel+' is required');
   if(!inv.dateInvoice)it.push('Date of Invoice is required');
   if(dt.showSupply&&!inv.dateSupply)it.push('Date of Supply is required on a '+dt.label.toLowerCase());
+  if(!inv.project||!inv.project.trim())it.push('Project Name is required');
   if(!inv.billName||!inv.billName.trim())it.push('Bill To name is required');
   if(!inv.billAddr||!inv.billAddr.trim())it.push('Bill To address is required');
   const lines=c.rows.filter(r=>r.filled);
   if(lines.length===0)it.push('At least one line item is required');
   if(lines.some(r=>!(parseFloat(r.qty)>0)))it.push('Every line needs a quantity greater than zero');
-  if(!(parseFloat(inv.rate)>0))it.push('A USD → AED rate is required');
+  if(!(inv.mode==='domestic'&&inv.aedOnly)&&!(parseFloat(inv.rate)>0))it.push('A USD → AED rate is required');
   return it;
 }
 
@@ -930,6 +933,7 @@ function setMode(m){
   if(!inv.set.includes(m))inv.set.push(m);
   const sel=document.getElementById('docTypeSel');if(sel)sel.value=m;
   document.getElementById('lblNum').textContent=dt.numLabel.replace('#','No.');
+  const ls=document.getElementById('lblSupply');if(ls)ls.classList.toggle('req',!!dt.showSupply);
   const logBtn=document.getElementById('logBtn');
   if(dt.logStage){logBtn.textContent='Log to Bigin → '+dt.logStage.stage;logBtn.disabled=false;logBtn.style.opacity='';}
   else{logBtn.textContent='Attach to Bigin';logBtn.disabled=false;logBtn.style.opacity='';}
