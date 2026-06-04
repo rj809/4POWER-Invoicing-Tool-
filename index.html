@@ -690,6 +690,7 @@ const BRIDGE='https://launch4power.app.n8n.cloud/webhook/bigin-bridge';
 let liveCompanies=[];   // last deduped live search results
 let activeBiginId='';   // Bigin account id of the picked customer
 let activeBiginName=''; // Bigin account name of the picked customer
+let activeContactId=''; // Bigin contact id (required to create a deal)
 let activeDealId='';    // Bigin deal id of the linked deal (Phase 3 write-back)
 let activeDeal=null;    // {id,name,stage,pipeline,...} of the linked deal
 let custSrch=null;      // debounce handle
@@ -777,6 +778,7 @@ function resetSubPickers(){
   if(cs){cs.style.display='none';cs.innerHTML=''}
   if(dw){dw.style.display='none'}
   const cw=document.getElementById('createDealWrap');if(cw)cw.style.display='none';
+  activeContactId='';
 }
 function composeAddr(c){
   const l2=[c.billCity,c.billState].filter(Boolean).join(', ');
@@ -814,8 +816,9 @@ async function loadContacts(id){
 }
 function pickContact(){
   const cs=document.getElementById('contactSel');const i=parseInt(cs.value);
-  if(!(i>=0)||!cs._list)return;
+  if(!(i>=0)||!cs._list){activeContactId='';return}
   inv.attention=cs._list[i].name||'';
+  activeContactId=cs._list[i].id||'';
   syncForm();recompute();
 }
 async function loadDeals(id){
@@ -895,6 +898,10 @@ async function createBiginDeal(){
     alert('Select a live Bigin customer first (search and pick a result), then create the deal.');
     return;
   }
+  if(!activeContactId){
+    alert('Bigin requires a primary contact on every deal.\n\nPick the Attention contact from the dropdown first. If this customer has no contact in Bigin, add one there, then search the customer again.');
+    return;
+  }
   if(activeDealId){
     if(!confirm('A deal is already linked. Create another new deal in Bigin anyway?'))return;
   }
@@ -904,7 +911,7 @@ async function createBiginDeal(){
   const btn=document.getElementById('createDealBtn');const lbl=btn.textContent;
   btn.disabled=true;btn.textContent='Creating in Bigin…';
   try{
-    const res=await bridge({action:'create_deal',account:activeBiginId,name,pipeline:'Quotations',stage:'Submit Quotation'});
+    const res=await bridge({action:'create_deal',account:activeBiginId,contact:activeContactId,name,pipeline:'Quotations',stage:'Submit Quotation'});
     if(res&&res.ok&&res.id){
       activeDealId=res.id;
       activeDeal={id:res.id,name:res.name||name,stage:res.stage||'Submit Quotation',pipeline:'Quotations',ourRef:res.ourRef||''};
