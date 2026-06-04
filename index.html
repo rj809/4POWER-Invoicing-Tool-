@@ -197,7 +197,7 @@ table.lines tbody tr.blank td{height:26px}
 
 @media print{
   @page{size:A4;margin:0 0 12mm 0;
-    @bottom-left{content:"";background:#0B1C3E}
+    @bottom-left{content:"www.4power.biz";background:#0B1C3E;color:#fff;font-family:'Poppins',sans-serif;font-size:9px;font-weight:500;text-align:left;padding:0 0 0 13mm}
     @bottom-center{content:"";background:#0B1C3E}
     @bottom-right{content:"Page " counter(page) " of " counter(pages);
       background:#0B1C3E;color:#fff;font-family:'Poppins',sans-serif;font-size:9px;font-weight:500;text-align:right;padding:0 13mm 0 0}}
@@ -319,6 +319,7 @@ table.lines tbody tr.blank td{height:26px}
       <div class="fld"><label>Payment Terms</label>
         <select id="terms" onchange="recompute()">
           <option>Advance</option>
+          <option>Immediate</option>
           <option>Net 15</option>
           <option selected>Net 30</option>
           <option>Net 45</option>
@@ -701,7 +702,7 @@ function recompute(){
   // due date
   const t=inv.terms, di=inv.dateInvoice;
   let due='';
-  if(di){if(t==='Advance')due=di;else{const d=parseInt((t.match(/\d+/)||[0])[0]);due=addDays(di,d)}}
+  if(di){if(t==='Advance'||t==='Immediate')due=di;else{const d=parseInt((t.match(/\d+/)||[0])[0]);due=addDays(di,d)}}
   document.getElementById('dueDate').value=due;
   render(); persist();
   if(curStep===4&&typeof renderReview==='function')renderReview();
