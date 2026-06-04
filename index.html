@@ -207,9 +207,10 @@ table.lines tbody tr.blank td{height:26px}
   .layout{display:block;height:auto}
   .stage{padding:0;overflow:visible;background:#fff;display:block}
   .sheet{width:auto;min-height:285mm;box-shadow:none;padding:8mm 13mm 32mm;font-size:10px}
-  .sheet .hd{padding-bottom:4px}
+  .sheet .hd{padding-bottom:10px}
   .rule{margin:6px 0}
-  .sheet .meta{padding-top:2px}
+  .sheet .hd + .rule{margin:14px 0}
+  .sheet .meta{padding-top:4px}
   .mtbl td.k,.mtbl td.v{padding:3px 9px}
   .mtbl{border-spacing:0 2px}
   table.lines tbody td{padding:6px 5px}
@@ -217,6 +218,8 @@ table.lines tbody tr.blank td{height:26px}
   .decl{margin-top:7px;padding:8px 12px}
   .aiw .band,.sums th{padding:5px 8px}
   .aiw .r .k,.aiw .r .v,.sums td{padding:4px 8px}
+  .sums td,.sums th{white-space:nowrap}
+  .sums td.k{white-space:normal}
   .foot{position:absolute;left:0;right:0;bottom:0;margin:0;padding:18px 13mm 20px}
   .foot .ty{font-size:14px;margin-bottom:5px}
   .foot .lg{font-size:8.5px;line-height:1.55}
@@ -342,6 +345,12 @@ table.lines tbody tr.blank td{height:26px}
           <input id="insurance" type="number" min="0" step="0.01" placeholder="0.00" oninput="recompute()"></div>
       </div>
     </div>
+    <div class="row2">
+      <div class="fld"><label>Discount <span style="color:var(--mut);font-weight:400">— before VAT, optional</span></label>
+        <input id="discount" type="number" min="0" step="0.01" placeholder="0.00" oninput="recompute()"></div>
+      <div class="fld"><label>Advance received <span style="color:var(--mut);font-weight:400">— after VAT, optional</span></label>
+        <input id="advance" type="number" min="0" step="0.01" placeholder="0.00" oninput="recompute()"></div>
+    </div>
     <div class="fld"><label>Remit account shown</label>
       <select id="remit" onchange="recompute()">
         <option value="both" selected>FAB — AED &amp; USD</option>
@@ -465,7 +474,7 @@ function blank(mode){
     dateInvoice:iso,dateSupply:'',ourRef:'',project:'',
     custId:'',attention:'',yourRef:'',poNumber:'',
     billName:'',billAddr:'',delName:'',delAddr:'',
-    terms:CONFIG.defaults.terms,decl:CONFIG.defaults.decl,rate:CONFIG.fx.default,remit:CONFIG.defaults.remit,freight:'',insurance:'',
+    terms:CONFIG.defaults.terms,decl:CONFIG.defaults.decl,rate:CONFIG.fx.default,remit:CONFIG.defaults.remit,freight:'',insurance:'',discount:'',advance:'',
     numbers:{},set:[mode],checks:{},aedOnly:false,
     items:[{part:'',desc:'',hsn:'',qty:1,price:0,vat:0}]};
 }
@@ -488,17 +497,22 @@ function compute(){
   const rate=parseFloat(inv.rate)||RATE_DEFAULT;
   const dt=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
   const vrate=(dt.vatRate!=null)?dt.vatRate:0;   // VAT % locked by document type
-  let netT=0,vatT=0;
+  let netT=0,vatLines=0;
   const rows=inv.items.map(it=>{
     const qty=parseFloat(it.qty)||0,price=parseFloat(it.price)||0;
     const filled=(it.desc||it.part)&&qty>0;
     const net=qty*price, vatAmt=Math.round(net*vrate/100*100)/100, tUSD=net+vatAmt, tAED=tUSD*rate;
-    if(filled){netT+=net;vatT+=vatAmt}
+    if(filled){netT+=net;vatLines+=vatAmt}
     return{...it,filled,net,vr:vrate,vatAmt,tUSD,tAED};
   });
-  const totUSD=netT+vatT, totAED=totUSD*rate;
+  const discount=Math.max(0,parseFloat(inv.discount)||0);
+  const advance=Math.max(0,parseFloat(inv.advance)||0);
+  const netAfterDisc=Math.max(0,netT-discount);
+  const vatT=discount>0?Math.round(netAfterDisc*vrate/100*100)/100:vatLines;
+  const totUSD=netAfterDisc+vatT, totAED=totUSD*rate;
   const freight=parseFloat(inv.freight)||0, insurance=parseFloat(inv.insurance)||0, cif=freight+insurance, cifUSD=netT+cif, cifAED=cifUSD*rate;
-  return{rate,vrate,rows,netT,vatT,totUSD,totAED,cif,freight,insurance,cifUSD,cifAED};
+  const balanceUSD=totUSD-advance, balanceAED=balanceUSD*rate;
+  return{rate,vrate,rows,netT,vatLines,discount,advance,netAfterDisc,vatT,totUSD,totAED,balanceUSD,balanceAED,cif,freight,insurance,cifUSD,cifAED};
 }
 
 /* ---------------- render preview ---------------- */
@@ -590,12 +604,23 @@ function render(){
     </div>
     <div class="sums"><table>
       ${aed?`<tr><th class="l"></th><th>AED</th></tr>
-      <tr><td class="k">Net Taxable Value</td><td>${fmt(c.netT)}</td></tr>
+      ${c.discount>0?`<tr><td class="k">Subtotal</td><td>${fmt(c.netT)}</td></tr>
+      <tr><td class="k">Less: Discount</td><td>(${fmt(c.discount)})</td></tr>`:''}
+      <tr><td class="k">Net Taxable Value</td><td>${fmt(c.netAfterDisc)}</td></tr>
       <tr><td class="k">VAT</td><td>${c.vatT?fmt(c.vatT):'-'}</td></tr>
-      <tr class="tot"><td class="k">Total Amount</td><td>${fmt(c.totUSD)}</td></tr>`:`<tr><th class="l"></th><th>USD</th><th>AED</th></tr>
-      <tr><td class="k">Net Taxable Value</td><td>USD ${fmt(c.netT)}</td><td>AED ${fmt(c.netT*c.rate)}</td></tr>
+      ${c.advance>0?`<tr><td class="k">Total Amount</td><td>${fmt(c.totUSD)}</td></tr>
+      <tr><td class="k">Less: Advance received</td><td>(${fmt(c.advance)})</td></tr>
+      <tr class="tot"><td class="k">Balance Due</td><td>${fmt(c.balanceUSD)}</td></tr>`
+      :`<tr class="tot"><td class="k">Total Amount</td><td>${fmt(c.totUSD)}</td></tr>`}`
+      :`<tr><th class="l"></th><th>USD</th><th>AED</th></tr>
+      ${c.discount>0?`<tr><td class="k">Subtotal</td><td>USD ${fmt(c.netT)}</td><td>AED ${fmt(c.netT*c.rate)}</td></tr>
+      <tr><td class="k">Less: Discount</td><td>(USD ${fmt(c.discount)})</td><td>(AED ${fmt(c.discount*c.rate)})</td></tr>`:''}
+      <tr><td class="k">Net Taxable Value</td><td>USD ${fmt(c.netAfterDisc)}</td><td>AED ${fmt(c.netAfterDisc*c.rate)}</td></tr>
       <tr><td class="k">VAT</td><td>${c.vatT?('USD '+fmt(c.vatT)):'-'}</td><td>${c.vatT?('AED '+fmt(c.vatT*c.rate)):'-'}</td></tr>
-      <tr class="tot"><td class="k">Total Sales Amount</td><td>USD ${fmt(c.totUSD)}</td><td>AED ${fmt(c.totAED)}</td></tr>`}
+      ${c.advance>0?`<tr><td class="k">Total Sales Amount</td><td>USD ${fmt(c.totUSD)}</td><td>AED ${fmt(c.totAED)}</td></tr>
+      <tr><td class="k">Less: Advance received</td><td>(USD ${fmt(c.advance)})</td><td>(AED ${fmt(c.advance*c.rate)})</td></tr>
+      <tr class="tot"><td class="k">Balance Due</td><td>USD ${fmt(c.balanceUSD)}</td><td>AED ${fmt(c.balanceAED)}</td></tr>`
+      :`<tr class="tot"><td class="k">Total Sales Amount</td><td>USD ${fmt(c.totUSD)}</td><td>AED ${fmt(c.totAED)}</td></tr>`}`}
     </table></div>`}
   </div>
   <div class="rule"></div>
@@ -694,11 +719,11 @@ function bind(){
 }
 function syncForm(){
   inv.terms=document.getElementById('terms').value=inv.terms;
-  ['docTitle','docNumber','dateInvoice','dateSupply','ourRef','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','rate','decl','remit','freight','insurance'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=inv[id]});
+  ['docTitle','docNumber','dateInvoice','dateSupply','ourRef','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','rate','decl','remit','freight','insurance','discount','advance'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=inv[id]});
   document.getElementById('terms').value=inv.terms;
 }
 function recompute(){
-  ['terms','rate','remit','freight','insurance','docNumber','docTitle','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','dateInvoice','dateSupply'].forEach(id=>{const el=document.getElementById(id);if(el&&id in inv)inv[id]=el.value});
+  ['terms','rate','remit','freight','insurance','discount','advance','docNumber','docTitle','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','dateInvoice','dateSupply'].forEach(id=>{const el=document.getElementById(id);if(el&&id in inv)inv[id]=el.value});
   // due date
   const t=inv.terms, di=inv.dateInvoice;
   let due='';
