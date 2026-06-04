@@ -30,6 +30,10 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
   font-weight:600;font-size:12.5px;cursor:pointer;outline:none}
 .modewrap select option{color:var(--navy)}
 .setbar{background:var(--s2);border-bottom:1px solid var(--bd);padding:7px 16px}
+.chk{display:flex;gap:9px;align-items:flex-start;margin-top:6px;padding:11px 12px;background:var(--s2);
+  border:1px solid var(--bd);border-radius:8px;font-size:12.5px;color:var(--navy);cursor:pointer;line-height:1.35}
+.chk input{margin-top:1px;width:15px;height:15px;flex:none;accent-color:var(--teal,#0FB39A);cursor:pointer}
+.chk b{font-weight:600}
 .settabs{display:flex;gap:7px;align-items:center;flex-wrap:nowrap;overflow-x:auto}
 .settabs .stab{display:inline-flex;align-items:center;gap:7px;background:#fff;color:var(--navy);
   border:1px solid var(--bd);border-radius:8px;padding:5px 8px 5px 11px;font-size:11.5px;cursor:pointer;line-height:1.1;white-space:nowrap}
@@ -247,6 +251,10 @@ table.lines tbody tr.blank td{height:26px}
       <div class="fld"><label>Our Reference <span style="color:var(--mut);font-weight:400">— auto from Bigin</span></label><input id="ourRef" readonly placeholder="Generated on deal creation" style="background:var(--s2)"></div>
       <div class="fld"><label>Project Name</label><input id="project" placeholder="Cash Deposit Machine"></div>
     </div>
+    <label class="chk" id="companionWrap" style="display:none">
+      <input type="checkbox" id="companionChk" onchange="toggleCompanions(this.checked)">
+      <span>Also prepare <b>Packing List</b> &amp; <b>Delivery Note</b> from this data <span style="color:var(--mut)">— shown as tabs above to view &amp; edit</span></span>
+    </label>
 
     </section>
     <section class="wstep" data-step="2">
@@ -883,24 +891,32 @@ function setMode(m){
   const cw=document.getElementById('cifWrap');if(cw)cw.style.display=dt.cif?'':'none';
   document.querySelectorAll('[data-pricing]').forEach(el=>{el.style.display=dt.pricing?'':'none'});
   renderSetTabs();
+  if(typeof syncCompanionChk==='function')syncCompanionChk();
   syncForm();recompute();
 }
-// dropdown / user-initiated type pick — changes the MAIN document (replaces it), may offer companions
+// dropdown / user-initiated type pick — changes the MAIN document (replaces it)
 function pickType(m){
   if(!CONFIG.docTypes[m])return;
-  if(inv.set&&inv.set.includes(m)){setMode(m);maybeOfferCompanions(m);return;}
+  if(inv.set&&inv.set.includes(m)){setMode(m);return;}
   const prev=inv.mode;
   setMode(m);
   if(prev&&prev!==m){inv.set=inv.set.filter(x=>x!==prev);if(inv.numbers)delete inv.numbers[prev];renderSetTabs();}
-  maybeOfferCompanions(m);
 }
-function maybeOfferCompanions(m){
-  if(m!=='exportgoods')return;
-  const want=['packingslip','deliverynote'].filter(t=>!(inv.set||[]).includes(t));
-  if(want.length&&confirm('Also prepare the Packing List and Delivery Note from this data?\n\nBoth share the customer and line items, each with its own number. Switch between them using the tabs.')){
-    want.forEach(t=>{if(!inv.set.includes(t))inv.set.push(t);if(!(t in inv.numbers))inv.numbers[t]='';});
-    renderSetTabs();
-  }
+const COMPANIONS=['packingslip','deliverynote'];
+// checkbox in step 1 — add/remove the shipping companions
+function toggleCompanions(on){
+  if(on){COMPANIONS.forEach(t=>{if(!inv.set.includes(t))inv.set.push(t);if(!(t in inv.numbers))inv.numbers[t]='';});}
+  else{COMPANIONS.forEach(t=>{inv.set=inv.set.filter(x=>x!==t);if(inv.numbers)delete inv.numbers[t];});
+    if(!inv.set.includes(inv.mode))setMode(inv.set[0]);}
+  renderSetTabs();
+}
+// reflect the checkbox state/visibility for the active doc type
+function syncCompanionChk(){
+  const wrap=document.getElementById('companionWrap'),chk=document.getElementById('companionChk');
+  if(!wrap||!chk)return;
+  const show=inv.mode==='exportgoods'||COMPANIONS.includes(inv.mode);
+  wrap.style.display=show?'':'none';
+  chk.checked=COMPANIONS.every(t=>(inv.set||[]).includes(t));
 }
 // add a related/companion document to the set without replacing the main one
 function addRelatedDoc(m){
