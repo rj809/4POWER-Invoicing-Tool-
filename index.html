@@ -177,7 +177,7 @@ table.lines tbody tr.blank td{height:26px}
 .sums td.k{text-align:left;background:var(--cream);font-weight:400}
 .sums tr.tot td{background:var(--totlime);color:var(--navy);font-weight:600;border:0}
 
-.decl{margin-top:11px;background:var(--cream);padding:10px 12px}
+.decl{margin-top:0;background:var(--cream);padding:10px 12px}
 .decl .h{font-weight:500;font-size:10px;margin-bottom:3px}
 .decl p{font-size:8.5px;font-weight:300;line-height:1.55}
 .remit2{margin-top:0;display:grid;grid-template-columns:1.18fr 1fr;gap:14px;align-items:start}
@@ -213,14 +213,14 @@ table.lines tbody tr.blank td{height:26px}
   .topbar,.controls,.setbar{display:none!important}
   .layout{display:block;height:auto}
   .stage{padding:0;overflow:visible;background:#fff;display:block}
-  .sheet{width:auto;min-height:270mm;box-shadow:none;padding:8mm 13mm 24mm;font-size:10px}
-  .sheet .hd{padding-bottom:10px}
+  .sheet{display:block;width:auto;min-height:285mm;box-shadow:none;padding:8mm 13mm 21mm;font-size:10px}
+  .sheet .hd{padding-bottom:0}
   .rule{margin:7px 0}
-  .sheet .meta{padding-top:6px}
+  .sheet .meta{padding-top:0}
   .sheet .co .ln{font-size:10px}
   table.lines tbody td{padding:8px 5px}
   table.lines tbody tr.blank td{height:11px}
-  .decl{margin-top:8px;padding:9px 12px}
+  .decl{margin-top:0;padding:9px 12px}
   .aiw .band,.sums th{padding:6px 9px}
   .aiw .r .k,.aiw .r .v{padding:5px 9px;font-size:8.7px;line-height:1.18}
   .sums td{padding:6px 9px}
@@ -228,12 +228,11 @@ table.lines tbody tr.blank td{height:26px}
   .sums td.k{white-space:normal}
   .foot{position:absolute;left:0;right:0;bottom:0;margin:0;padding:7px 13mm 9px}
   .foot .ty{font-size:12px;margin-bottom:2px}
-  .foot .lg{font-size:8.5px;line-height:1.4}
+  .foot .lg{font-size:8.5px;line-height:1.35}
   .foot .cp{font-size:8.5px;margin-top:2px}
   table.lines thead{display:table-header-group}
   table.lines tr{break-inside:avoid}
-  .totwrap,.decl,.remit2{break-inside:avoid}
-  .remit2:not(.solo){break-before:page}
+  .totwrap,.decl,.remit2,.foot{break-inside:avoid}
   .sheet .ed{background:none!important;box-shadow:none!important}
   .sheet .ed:empty:before{content:'—';color:#000}
 }
@@ -593,6 +592,7 @@ function render(){
       ?`<th>Unit Price<br>(AED)</th><th>Net Taxable<br>Value (AED)</th><th>VAT<br>Rate</th><th>VAT Amount<br>(AED)</th><th>Total Amount<br>(AED)</th>`
       :`<th>Unit Price<br>(USD)</th><th>Net Taxable<br>Value (USD)</th><th>VAT<br>Rate</th><th>VAT Amount<br>(USD)</th><th>Total Sales<br>Amount (USD)</th><th>Total Sales<br>Amount (AED)</th>`}</tr></thead><tbody>${body}</tbody></table>
 
+  <div class="rule"></div>
   <div class="decl"><div class="h">Declaration</div><p>${declText}${aed?'':((declText?'<br>':'')+CONFIG.fx.label+' = '+c.rate+fxStamp)}</p></div>
   <div class="rule"></div>
 
