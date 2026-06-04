@@ -127,7 +127,7 @@ details.cat[open] summary::before{content:'▾ '}
 .mtbl td{vertical-align:middle}
 .mtbl td.k{background:var(--cream);color:var(--navy);font-weight:500;font-size:10px;padding:5px 9px;width:160px;white-space:nowrap}
 .mtbl td.v{padding:5px 9px;font-weight:400;font-size:11px;color:var(--navy);text-align:left}
-.rule{height:2px;background:var(--lime);border:0;margin:11px 0}
+.rule{height:2px;background:var(--lime);border:0;margin:18px 0}
 
 .addrs{display:grid;grid-template-columns:1fr 1fr 330px;gap:18px;padding:0;align-items:start}
 .addrs .bx .h{display:inline-block;background:var(--cream);font-weight:500;font-size:11px;color:var(--navy);padding:3px 9px;margin-bottom:6px}
@@ -182,7 +182,9 @@ table.lines tbody tr.blank td{height:26px}
 .remit2 .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:4px 9px;margin-bottom:7px}
 .remit2 .bank{font-size:10px;font-weight:300;line-height:1.75}
 .remit2 .remarks{min-height:58px}
-.foot{margin:0 -40px 0;background:var(--navy);color:var(--ftsub);padding:20px 40px;
+.sheet .remarks{white-space:pre-wrap}
+.sheet .ed.edm{display:block;min-height:46px}
+.foot{margin:auto -40px 0;background:var(--navy);color:var(--ftsub);padding:20px 40px;
   display:flex;flex-direction:column;gap:4px}
 .foot .ty{font-family:var(--inv);font-weight:500;font-size:16px;color:#fff;margin-bottom:7px}
 .foot .lg{font-size:9px;font-weight:300;line-height:1.6}
@@ -199,16 +201,16 @@ table.lines tbody tr.blank td{height:26px}
   .topbar,.controls,.setbar{display:none!important}
   .layout{display:block;height:auto}
   .stage{padding:0;overflow:visible;background:#fff;display:block}
-  .sheet{width:auto;min-height:auto;box-shadow:none;padding:8mm 13mm 0;font-size:10px}
+  .sheet{width:auto;min-height:282mm;box-shadow:none;padding:8mm 13mm 0;font-size:10px}
   .sheet .hd{padding-bottom:4px}
-  .rule{margin:5px 0}
+  .rule{margin:9px 0}
   .sheet .meta{padding-top:2px}
   table.lines tbody td{padding:6px 5px}
   table.lines tbody tr.blank td{height:9px}
   .decl{margin-top:7px;padding:8px 12px}
   .aiw .band,.sums th{padding:5px 8px}
   .aiw .r .k,.aiw .r .v,.sums td{padding:4px 8px}
-  .foot{margin:0 -13mm 0;padding:11px 13mm}
+  .foot{margin:auto -13mm 0;padding:11px 13mm}
   .foot .ty{margin-bottom:4px}
   table.lines thead{display:table-header-group}
   table.lines tr{break-inside:avoid}
@@ -572,7 +574,7 @@ function render(){
   <div class="rule"></div>
 
   <div class="remit2">
-    <div><div class="h">Additional Remarks</div><div class="remarks ln">${esc(inv.remarks||'')}</div></div>
+    <div><div class="h">Additional Remarks</div><div class="ed edm remarks ln" contenteditable="true" spellcheck="false" data-field="remarks" data-ph="Add remarks…">${esc(inv.remarks||'')}</div></div>
     <div><div class="h">Remit To</div><div class="bank">${BANK.name}<br>${BANK.branch}<br>${acct}<br>${ibanRows.join('<br>')}<br>SWIFT: ${BANK.swift}</div></div>
   </div>
   <div class="rule"></div>
@@ -642,7 +644,7 @@ function renderSimpleDoc(dt,c){
   <table class="lines"><thead>${linesHead}</thead><tbody>${body}</tbody></table>
   <div class="rule"></div>
   <div class="remit2">
-    <div><div class="h">Additional Remarks</div><div class="remarks ln">${esc(inv.remarks||'')}</div></div>
+    <div><div class="h">Additional Remarks</div><div class="ed edm remarks ln" contenteditable="true" spellcheck="false" data-field="remarks" data-ph="Add remarks…">${esc(inv.remarks||'')}</div></div>
     <div><div class="h">Summary</div><div class="bank">Total line items: ${filled.length}<br>Total quantity: ${totQty}</div></div>
   </div>
   <div class="rule"></div>
@@ -1101,10 +1103,10 @@ function init(){
   const sheetEl=document.getElementById('sheet');
   sheetEl.addEventListener('input',e=>{const el=e.target.closest('.ed');if(!el)return;
     const f=el.getAttribute('data-field');if(!f)return;
-    inv[f]=el.textContent.replace(/\u00a0/g,' ');
+    inv[f]=(el.classList.contains('edm')?el.innerText:el.textContent).replace(/\u00a0/g,' ');
     const pin=document.getElementById(f);if(pin&&'value'in pin)pin.value=inv[f];
     persist();if(curStep===4&&typeof renderReview==='function')renderReview();});
-  sheetEl.addEventListener('keydown',e=>{const el=e.target.closest('.ed');if(el&&e.key==='Enter'){e.preventDefault();el.blur();}});
+  sheetEl.addEventListener('keydown',e=>{const el=e.target.closest('.ed');if(el&&!el.classList.contains('edm')&&e.key==='Enter'){e.preventDefault();el.blur();}});
   sheetEl.addEventListener('click',e=>{const pill=e.target.closest('.pill');if(!pill)return;
     const i=parseInt(pill.getAttribute('data-ci'));if(isNaN(i))return;
     if(!inv.checks)inv.checks={};const arr=inv.checks[inv.mode]||(inv.checks[inv.mode]=[]);
