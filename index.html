@@ -271,6 +271,10 @@ table.lines tbody tr.blank td{height:26px}
       <input type="checkbox" id="companionChk" onchange="toggleCompanions(this.checked)">
       <span>Also prepare <b>Packing List</b> &amp; <b>Delivery Note</b> from this data <span style="color:var(--mut)">— shown as tabs above to view &amp; edit</span></span>
     </label>
+    <label class="chk" id="aedWrap" style="display:none">
+      <input type="checkbox" id="aedChk" onchange="toggleAedOnly(this.checked)">
+      <span><b>AED only</b> — hide USD conversion <span style="color:var(--mut)">(domestic invoice priced in dirhams)</span></span>
+    </label>
 
     </section>
     <section class="wstep" data-step="2">
@@ -325,7 +329,7 @@ table.lines tbody tr.blank td{height:26px}
     </div>
     <div class="row2">
       <div class="fld"><label>VAT (set by document type)</label><input id="vatNote" readonly style="background:var(--s2)"></div>
-      <div class="fld"><label>USD → AED rate</label><input id="rate" type="number" step="0.0001" placeholder="e.g. 3.6725" oninput="recompute()"></div>
+      <div class="fld" id="rateFld"><label>USD → AED rate</label><input id="rate" type="number" step="0.0001" placeholder="e.g. 3.6725" oninput="recompute()"></div>
     </div>
     <div class="fld" id="cifWrap" style="display:none">
       <label>Freight &amp; Insurance (USD) <span style="color:var(--mut);font-weight:400">— added to FOB to give CIF</span></label>
@@ -454,7 +458,7 @@ function blank(mode){
     custId:'',attention:'',yourRef:'',poNumber:'',
     billName:'',billAddr:'',delName:'',delAddr:'',
     terms:CONFIG.defaults.terms,decl:CONFIG.defaults.decl,rate:CONFIG.fx.default,remit:CONFIG.defaults.remit,freightIns:'',
-    numbers:{},set:[mode],checks:{},
+    numbers:{},set:[mode],checks:{},aedOnly:false,
     items:[{part:'',desc:'',hsn:'',qty:1,price:0,vat:0}]};
 }
 function load(k,d){try{const v=localStorage.getItem('4p_inv_'+k);return v?JSON.parse(v):d}catch(e){return d}}
@@ -496,17 +500,17 @@ function render(){
   if(!dtR.pricing){renderSimpleDoc(dtR,c);return;}
   const filled=c.rows.filter(r=>r.filled);
   const minRows=Math.max(0,4-filled.length);
+  const aed=inv.mode==='domestic'&&!!inv.aedOnly;
   let body='';let n=0;
   filled.forEach(r=>{n++;
     const sub=[ (r.part&&r.part!=='-')?('Part&nbsp;#&nbsp;'+esc(r.part)):'', (r.hsn&&r.hsn!=='-')?('HSN&nbsp;Code&nbsp;'+esc(r.hsn)):'' ].filter(Boolean).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
-    body+=`<tr>
-    <td class="col-no">${n}</td>
-    <td class="l"><div class="li-desc">${esc(r.desc)}</div>${sub?`<div class="li-sub">${sub}</div>`:''}</td>
-    <td class="col-qty">${r.qty}</td>
-    <td>${fmt(r.price)}</td><td>${fmt(r.net)}</td><td>${r.vr||0}%</td>
-    <td>${fmt(r.vatAmt)}</td><td>${fmt(r.tUSD)}</td><td>${fmt(r.tAED)}</td></tr>`});
-  for(let i=0;i<minRows;i++)body+=`<tr class="blank"><td class="col-no"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
-  if(filled.length===0&&minRows===0)body=`<tr><td colspan="9" class="l empty-note">Add a line item to begin…</td></tr>`;
+    const lead=`<td class="col-no">${n}</td><td class="l"><div class="li-desc">${esc(r.desc)}</div>${sub?`<div class="li-sub">${sub}</div>`:''}</td><td class="col-qty">${r.qty}</td><td>${fmt(r.price)}</td><td>${fmt(r.net)}</td><td>${r.vr||0}%</td><td>${fmt(r.vatAmt)}</td><td>${fmt(r.tUSD)}</td>`;
+    body+= aed ? `<tr>${lead}</tr>` : `<tr>${lead}<td>${fmt(r.tAED)}</td></tr>`;
+  });
+  const cols=aed?8:9;
+  const blankRow='<td class="col-no"></td>'+'<td></td>'.repeat(cols-1);
+  for(let i=0;i<minRows;i++)body+=`<tr class="blank">${blankRow}</tr>`;
+  if(filled.length===0&&minRows===0)body=`<tr><td colspan="${cols}" class="l empty-note">Add a line item to begin…</td></tr>`;
 
   const dtR2=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
   const declText=dtR2.decl?(CONFIG.declarations[dtR2.decl]||''):'';
@@ -549,10 +553,11 @@ function render(){
   <div class="rule"></div>
   <table class="lines"><thead><tr>
     <th class="col-no">No</th><th class="l">Description</th>
-    <th class="col-qty">Qty</th><th>Unit Price<br>(USD)</th><th>Net Taxable<br>Value (USD)</th><th>VAT<br>Rate</th>
-    <th>VAT Amount<br>(USD)</th><th>Total Sales<br>Amount (USD)</th><th>Total Sales<br>Amount (AED)</th></tr></thead><tbody>${body}</tbody></table>
+    <th class="col-qty">Qty</th>${aed
+      ?`<th>Unit Price<br>(AED)</th><th>Net Taxable<br>Value (AED)</th><th>VAT<br>Rate</th><th>VAT Amount<br>(AED)</th><th>Total Amount<br>(AED)</th>`
+      :`<th>Unit Price<br>(USD)</th><th>Net Taxable<br>Value (USD)</th><th>VAT<br>Rate</th><th>VAT Amount<br>(USD)</th><th>Total Sales<br>Amount (USD)</th><th>Total Sales<br>Amount (AED)</th>`}</tr></thead><tbody>${body}</tbody></table>
 
-  ${declText?`<div class="decl"><div class="h">Declaration</div><p>${declText}<br>${CONFIG.fx.label} = ${c.rate}${fxStamp}</p></div>`:`<div class="decl"><div class="h">Declaration</div><p>${CONFIG.fx.label} = ${c.rate}${fxStamp}</p></div>`}
+  <div class="decl"><div class="h">Declaration</div><p>${declText}${aed?'':((declText?'<br>':'')+CONFIG.fx.label+' = '+c.rate+fxStamp)}</p></div>
   <div class="rule"></div>
 
   <div class="totwrap">
@@ -570,15 +575,19 @@ function render(){
     </table></div>`:`
     <div class="aiw">
       <div class="band">Amount in words</div>
-      <div class="r"><span class="k">VAT amount in words</span><span class="v">${amountWords(c.vatT,'USD')}</span></div>
+      ${aed?`<div class="r"><span class="k">VAT amount in words</span><span class="v">${amountWords(c.vatT,'AED')}</span></div>
+      <div class="r"><span class="k">Total amount in words (AED)</span><span class="v">${amountWords(c.totUSD,'AED')}</span></div>`:`<div class="r"><span class="k">VAT amount in words</span><span class="v">${amountWords(c.vatT,'USD')}</span></div>
       <div class="r"><span class="k">Total amount in words (USD)</span><span class="v">${amountWords(c.totUSD,'USD')}</span></div>
-      <div class="r"><span class="k">Total amount in words (AED)</span><span class="v">${amountWords(c.totAED,'AED')}</span></div>
+      <div class="r"><span class="k">Total amount in words (AED)</span><span class="v">${amountWords(c.totAED,'AED')}</span></div>`}
     </div>
     <div class="sums"><table>
-      <tr><th class="l"></th><th>USD</th><th>AED</th></tr>
+      ${aed?`<tr><th class="l"></th><th>AED</th></tr>
+      <tr><td class="k">Net Taxable Value</td><td>${fmt(c.netT)}</td></tr>
+      <tr><td class="k">VAT</td><td>${c.vatT?fmt(c.vatT):'-'}</td></tr>
+      <tr class="tot"><td class="k">Total Amount</td><td>${fmt(c.totUSD)}</td></tr>`:`<tr><th class="l"></th><th>USD</th><th>AED</th></tr>
       <tr><td class="k">Net Taxable Value</td><td>USD ${fmt(c.netT)}</td><td>AED ${fmt(c.netT*c.rate)}</td></tr>
       <tr><td class="k">VAT</td><td>${c.vatT?('USD '+fmt(c.vatT)):'-'}</td><td>${c.vatT?('AED '+fmt(c.vatT*c.rate)):'-'}</td></tr>
-      <tr class="tot"><td class="k">Total Sales Amount</td><td>USD ${fmt(c.totUSD)}</td><td>AED ${fmt(c.totAED)}</td></tr>
+      <tr class="tot"><td class="k">Total Sales Amount</td><td>USD ${fmt(c.totUSD)}</td><td>AED ${fmt(c.totAED)}</td></tr>`}
     </table></div>`}
   </div>
   <div class="rule"></div>
@@ -932,6 +941,7 @@ function setMode(m){
   document.querySelectorAll('[data-pricing]').forEach(el=>{el.style.display=dt.pricing?'':'none'});
   renderSetTabs();
   if(typeof syncCompanionChk==='function')syncCompanionChk();
+  if(typeof syncAedChk==='function')syncAedChk();
   syncForm();recompute();
 }
 // dropdown / user-initiated type pick — changes the MAIN document (replaces it)
@@ -957,6 +967,16 @@ function syncCompanionChk(){
   const show=inv.mode==='exportgoods'||COMPANIONS.includes(inv.mode);
   wrap.style.display=show?'':'none';
   chk.checked=COMPANIONS.every(t=>(inv.set||[]).includes(t));
+}
+// AED-only mode (domestic only) — hide USD conversion
+function toggleAedOnly(on){inv.aedOnly=!!on;syncAedChk();render();persist();}
+function syncAedChk(){
+  const wrap=document.getElementById('aedWrap'),chk=document.getElementById('aedChk');
+  if(!wrap||!chk)return;
+  const show=inv.mode==='domestic';
+  wrap.style.display=show?'':'none';
+  chk.checked=!!inv.aedOnly;
+  const rl=document.getElementById('rateFld');if(rl)rl.style.display=(show&&inv.aedOnly)?'none':'';
 }
 // add a related/companion document to the set without replacing the main one
 function addRelatedDoc(m){
