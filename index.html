@@ -183,7 +183,11 @@ table.lines tbody tr.blank td{height:26px}
 .remit2{margin-top:0;display:grid;grid-template-columns:1.18fr 1fr;gap:14px;align-items:start}
 .remit2 .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:4px 9px;margin-bottom:7px}
 .remit2 .bank{font-size:10px;font-weight:300;line-height:1.75}
-.remit2 .bank .bl{display:inline-block;min-width:80px;color:var(--mut);font-weight:600}
+.remit2 .bankg{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;align-items:start;margin-top:2px}
+.remit2 .bankg .f{display:flex;flex-direction:column;gap:3px;min-width:0}
+.remit2 .bankg .f.full{grid-column:1 / -1}
+.remit2 .bankg .bl{font-family:var(--body);font-weight:700;font-size:7.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--mut);line-height:1}
+.remit2 .bankg .bv{font-family:var(--body);font-weight:500;font-size:10.5px;color:var(--navy);line-height:1.25;word-break:break-word}
 .remit2 .remarks{min-height:58px}
 .sheet .remarks{white-space:pre-wrap}
 .sheet .ed.edm{display:block;min-height:46px}
@@ -534,13 +538,18 @@ function render(){
   const dtR2=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
   const declText=dtR2.decl?(CONFIG.declarations[dtR2.decl]||''):'';
   const fxStamp=inv.dateInvoice?(' (as at '+dmy(inv.dateInvoice)+')'):'';
-  let acct;
-  if(inv.remit==='aed')acct=`A/c # (AED) ${BANK.aedAc}`;
-  else if(inv.remit==='usd')acct=`A/c # (US$) ${BANK.usdAc}`;
-  else acct=`A/c # (AED) ${BANK.aedAc} | (US$) ${BANK.usdAc}`;
-  const ibanRows=[];
-  if(inv.remit!=='usd')ibanRows.push(`IBAN # (AED) ${BANK.aedIban}`);
-  if(inv.remit!=='aed')ibanRows.push(`IBAN # (US$) ${BANK.usdIban}`);
+  const showAed=inv.remit!=='usd', showUsd=inv.remit!=='aed';
+  const bankFields=[
+    {l:'Account Name',v:BANK.name,full:1},
+    {l:'Branch',v:BANK.branch,full:1},
+    {l:'Address',v:BANK.address,full:1},
+    ...(showAed?[{l:'Account No. (AED)',v:BANK.aedAc}]:[]),
+    ...(showUsd?[{l:'Account No. (US$)',v:BANK.usdAc}]:[]),
+    ...(showAed?[{l:'IBAN (AED)',v:BANK.aedIban,full:1}]:[]),
+    ...(showUsd?[{l:'IBAN (US$)',v:BANK.usdIban,full:1}]:[]),
+    {l:'SWIFT',v:BANK.swift},
+  ];
+  const bankHtml=bankFields.map(f=>`<div class="f${f.full?' full':''}"><span class="bl">${esc(f.l)}</span><span class="bv">${esc(f.v)}</span></div>`).join('');
 
   document.getElementById('sheet').innerHTML=`
   <div class="hd"><div>${LOGO_LIGHT}</div>
@@ -624,7 +633,7 @@ function render(){
 
   <div class="remit2">
     <div><div class="h">Additional Remarks</div><div class="ed edm remarks ln" contenteditable="true" spellcheck="false" data-field="remarks" data-ph="Add remarks…">${esc(inv.remarks||'')}</div></div>
-    <div><div class="h">Remit To</div><div class="bank"><div><span class="bl">Account Name</span>${BANK.name}</div><div><span class="bl">Branch</span>${BANK.branch}</div><div><span class="bl">Address</span>${BANK.address}</div><div>${acct}</div>${ibanRows.map(r=>`<div>${r}</div>`).join('')}<div>SWIFT: ${BANK.swift}</div></div></div>
+    <div><div class="h">Remit To</div><div class="bankg">${bankHtml}</div></div>
   </div>
   <div class="rule"></div>
 
