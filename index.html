@@ -72,7 +72,7 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .fld{margin-bottom:11px}
 .fld label{display:block;font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:4px;letter-spacing:.01em}
 .fld label.req::after{content:" *";color:#EF4444;font-weight:800}
-.fld input.ph-hint::placeholder{font-size:11px;font-style:italic;color:var(--mut)}
+.fld input::placeholder,.fld textarea::placeholder{font-size:11px;font-style:italic;color:var(--mut)}
 .fld input,.fld select,.fld textarea{width:100%;border:1.5px solid var(--bd);border-radius:7px;padding:8px 10px;background:#fff;transition:.12s}
 .fld input:focus,.fld select:focus,.fld textarea:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue) inset;box-shadow:0 0 0 3px rgba(20,120,220,.12)}
 .fld textarea{resize:vertical;min-height:64px}
@@ -163,7 +163,7 @@ table.lines tbody tr.blank td{height:26px}
 .sheet .ed{outline:none;border-radius:3px;cursor:text;transition:background .12s;padding:0 2px;margin:0 -2px}
 .sheet .ed:hover{background:#EBF5FD}
 .sheet .ed:focus{background:#EBF5FD;box-shadow:0 0 0 2px rgba(20,120,220,.35)}
-.sheet .ed:empty:before{content:attr(data-ph);color:#c2c8d0}
+.sheet .ed:empty:before{content:attr(data-ph);color:#c2c8d0;font-style:italic}
 
 .totwrap{display:grid;grid-template-columns:1.18fr 1fr;gap:14px;margin-top:0;align-items:start}
 .aiw .band{background:var(--navy);color:#fff;font-weight:500;font-size:10px;padding:6px 10px}
@@ -183,6 +183,7 @@ table.lines tbody tr.blank td{height:26px}
 .remit2{margin-top:0;display:grid;grid-template-columns:1.18fr 1fr;gap:14px;align-items:start}
 .remit2 .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:4px 9px;margin-bottom:7px}
 .remit2 .bank{font-size:10px;font-weight:300;line-height:1.75}
+.remit2 .bank .bl{display:inline-block;min-width:80px;color:var(--mut);font-weight:600}
 .remit2 .remarks{min-height:58px}
 .sheet .remarks{white-space:pre-wrap}
 .sheet .ed.edm{display:block;min-height:46px}
@@ -259,7 +260,7 @@ table.lines tbody tr.blank td{height:26px}
     <div class="eyebrow">Document</div>
     <div class="row2">
       <div class="fld"><label id="lblTitle">Document Title</label><input id="docTitle"></div>
-      <div class="fld"><label id="lblNum" class="req">Reference No.</label><input id="docNumber" placeholder="Type reference"></div>
+      <div class="fld" id="numFld"><label id="lblNum" class="req">Reference No.</label><input id="docNumber" placeholder="[Insert Reference]"></div>
     </div>
     <div class="row2">
       <div class="fld"><label class="req">Date of Invoice</label><input id="dateInvoice" type="date"></div>
@@ -304,7 +305,6 @@ table.lines tbody tr.blank td{height:26px}
       <div class="hint">No existing deal? Create one at Quotations · Submit Quotation. Bigin assigns the Our Reference automatically.</div>
     </div>
     <div class="row2">
-      <div class="fld"><label>Your Reference</label><input id="yourRef" placeholder="—"></div>
       <div class="fld"><label>PO Number</label><input id="poNumber" placeholder="—"></div>
     </div>
     <div class="fld"><label class="req">Bill To (name)</label><input id="billName"></div>
@@ -388,7 +388,8 @@ const CONFIG={
   },
   bank:{
     name:"4POWER Infocom FZ LLC",
-    branch:"First Abu Dhabi Bank (FAB) | Sheikh Zayed Road Branch | Dubai, UAE",
+    branch:"First Abu Dhabi Bank (FAB)",
+    address:"Sheikh Zayed Road Branch | Dubai, UAE",
     aedAc:"1031 3219 3166 4010", usdAc:"1031 0019 3166 4024",
     aedIban:"AE860330000019100017280", usdIban:"AE 8503 5103 1001 9316 6402 4", swift:"NBADAEAA"
   },
@@ -427,7 +428,7 @@ const CONFIG={
   /* Document types — the engine. Add a type here and it appears in the switcher.
      logStage = where the linked Bigin deal moves when this doc is logged (null = no move). */
   docTypes:{
-    quotation:    { label:"Quotation",            title:"QUOTATION",                numLabel:"Quotation #",     footWord:"quotation",            dateLabel:"Date",            showSupply:false, pricing:true,  vatRate:0, decl:null,             cif:false, signoff:false, logStage:{pipeline:"Quotations",stage:"Submit Quotation"} },
+    quotation:    { label:"Quotation",            title:"QUOTATION",                numLabel:"Quotation #",     footWord:"quotation",            dateLabel:"Date",            showSupply:false, pricing:true,  vatRate:0, decl:null,             cif:false, signoff:false, noNumber:true, logStage:{pipeline:"Quotations",stage:"Submit Quotation"} },
     proforma:     { label:"Proforma",             title:"PROFORMA INVOICE",         numLabel:"Proforma #",      footWord:"proforma",             dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  vatRate:0, decl:"exportServices", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
     domestic:     { label:"Domestic Tax Invoice", title:"TAX INVOICE",              numLabel:"Invoice #",       footWord:"tax invoice",          dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  vatRate:5, decl:"domestic",       cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
     exportgoods:  { label:"Export Invoice — Goods",title:"EXPORT INVOICE",          numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  vatRate:0, decl:"exportGoods",    cif:true,  signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
@@ -533,7 +534,7 @@ function render(){
     <div class="co"><div class="nm">${COMPANY.name}</div><div class="ln">${COMPANY.lines.map(l=>esc(l)).join('<br>')}</div></div>
     <table class="mtbl">
       <tr><td class="k">${dtR2.dateLabel||'Date'}</td><td class="v">${dmy(inv.dateInvoice)||'—'}</td></tr>
-      <tr><td class="k">${dtR2.numLabel}</td><td class="v">${ed('docNumber',inv.docNumber,'Number')}</td></tr>
+      ${dtR2.noNumber?'':`<tr><td class="k">${dtR2.numLabel}</td><td class="v">${ed('docNumber',inv.docNumber,'Number')}</td></tr>`}
       ${dtR2.showSupply?`<tr><td class="k">Date of Supply</td><td class="v">${dmy(inv.dateSupply)||'—'}</td></tr>`:''}
       <tr><td class="k">Our Reference</td><td class="v">${esc(inv.ourRef)||'—'}</td></tr>
       <tr><td class="k">Project Name</td><td class="v">${ed('project',inv.project,'Project name')}</td></tr>
@@ -545,7 +546,6 @@ function render(){
     <div class="bx"><div class="h">Deliver To</div><div class="nm">${ed('delName',inv.delName,'Deliver to name')}</div><div class="ln">${esc(inv.delAddr)}</div></div>
     <div class="bx right"><table class="mtbl">
       <tr><td class="k">Customer ID</td><td class="v">${ed('custId',inv.custId,'Customer ID')}</td></tr>
-      <tr><td class="k">Your Reference</td><td class="v">${ed('yourRef',inv.yourRef,'Your reference')}</td></tr>
       <tr><td class="k">Purchase Order Number</td><td class="v">${ed('poNumber',inv.poNumber,'PO number')}</td></tr>
       <tr><td class="k">Attention</td><td class="v">${ed('attention',inv.attention,'Attention')}</td></tr>
       <tr><td class="k">Payment Terms</td><td class="v">${esc(inv.terms)||'—'}</td></tr>
@@ -596,7 +596,7 @@ function render(){
 
   <div class="remit2">
     <div><div class="h">Additional Remarks</div><div class="ed edm remarks ln" contenteditable="true" spellcheck="false" data-field="remarks" data-ph="Add remarks…">${esc(inv.remarks||'')}</div></div>
-    <div><div class="h">Remit To</div><div class="bank">${BANK.name}<br>${BANK.branch}<br>${acct}<br>${ibanRows.join('<br>')}<br>SWIFT: ${BANK.swift}</div></div>
+    <div><div class="h">Remit To</div><div class="bank"><div><span class="bl">Account Name</span>${BANK.name}</div><div><span class="bl">Branch</span>${BANK.branch}</div><div><span class="bl">Address</span>${BANK.address}</div><div>${acct}</div>${ibanRows.map(r=>`<div>${r}</div>`).join('')}<div>SWIFT: ${BANK.swift}</div></div></div>
   </div>
   <div class="rule"></div>
 
@@ -656,7 +656,6 @@ function renderSimpleDoc(dt,c){
     <div class="bx"><div class="h">Deliver To</div><div class="nm">${ed('delName',inv.delName,'Deliver to name')}</div><div class="ln">${esc(inv.delAddr)}</div></div>
     <div class="bx right"><table class="mtbl">
       <tr><td class="k">Customer ID</td><td class="v">${ed('custId',inv.custId,'Customer ID')}</td></tr>
-      <tr><td class="k">Your Reference</td><td class="v">${ed('yourRef',inv.yourRef,'Your reference')}</td></tr>
       <tr><td class="k">Purchase Order Number</td><td class="v">${ed('poNumber',inv.poNumber,'PO number')}</td></tr>
       <tr><td class="k">Attention</td><td class="v">${ed('attention',inv.attention,'Attention')}</td></tr>
     </table></div>
@@ -682,18 +681,18 @@ function renderSimpleDoc(dt,c){
 /* ---------------- bindings ---------------- */
 function bind(){
   const map={docTitle:'docTitle',docNumber:'docNumber',dateInvoice:'dateInvoice',dateSupply:'dateSupply',
-    ourRef:'ourRef',project:'project',custId:'custId',attention:'attention',yourRef:'yourRef',poNumber:'poNumber',
+    ourRef:'ourRef',project:'project',custId:'custId',attention:'attention',poNumber:'poNumber',
     billName:'billName',billAddr:'billAddr',delName:'delName',delAddr:'delAddr'};
   Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);el.addEventListener('input',()=>{inv[key]=el.value;recompute()})});
   ['terms','rate','remit'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',()=>{inv[id]=el.value;recompute()})});
 }
 function syncForm(){
   inv.terms=document.getElementById('terms').value=inv.terms;
-  ['docTitle','docNumber','dateInvoice','dateSupply','ourRef','project','custId','attention','yourRef','poNumber','billName','billAddr','delName','delAddr','rate','decl','remit','freightIns'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=inv[id]});
+  ['docTitle','docNumber','dateInvoice','dateSupply','ourRef','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','rate','decl','remit','freightIns'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=inv[id]});
   document.getElementById('terms').value=inv.terms;
 }
 function recompute(){
-  ['terms','rate','remit','freightIns','docNumber','docTitle','project','custId','attention','yourRef','poNumber','billName','billAddr','delName','delAddr','dateInvoice','dateSupply'].forEach(id=>{const el=document.getElementById(id);if(el&&id in inv)inv[id]=el.value});
+  ['terms','rate','remit','freightIns','docNumber','docTitle','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','dateInvoice','dateSupply'].forEach(id=>{const el=document.getElementById(id);if(el&&id in inv)inv[id]=el.value});
   // due date
   const t=inv.terms, di=inv.dateInvoice;
   let due='';
@@ -707,7 +706,7 @@ function validate(){
   const c=compute();const it=[];
   const dt=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
   const docLabel=dt.numLabel;
-  if(!inv.docNumber||!inv.docNumber.trim())it.push(docLabel+' is required');
+  if(!dt.noNumber&&(!inv.docNumber||!inv.docNumber.trim()))it.push(docLabel+' is required');
   if(!inv.dateInvoice)it.push('Date of Invoice is required');
   if(dt.showSupply&&!inv.dateSupply)it.push('Date of Supply is required on a '+dt.label.toLowerCase());
   if(!inv.project||!inv.project.trim())it.push('Project Name is required');
@@ -933,6 +932,7 @@ function setMode(m){
   if(!inv.set.includes(m))inv.set.push(m);
   const sel=document.getElementById('docTypeSel');if(sel)sel.value=m;
   document.getElementById('lblNum').textContent=dt.numLabel.replace('#','No.');
+  const nf=document.getElementById('numFld');if(nf)nf.style.display=dt.noNumber?'none':'';
   const ls=document.getElementById('lblSupply');if(ls)ls.classList.toggle('req',!!dt.showSupply);
   const logBtn=document.getElementById('logBtn');
   if(dt.logStage){logBtn.textContent='Log to Bigin → '+dt.logStage.stage;logBtn.disabled=false;logBtn.style.opacity='';}
