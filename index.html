@@ -213,7 +213,7 @@ table.lines tbody tr.blank td{height:26px}
   .topbar,.controls,.setbar{display:none!important}
   .layout{display:block;height:auto}
   .stage{padding:0;overflow:visible;background:#fff;display:block}
-  .sheet{display:block;width:auto;min-height:285mm;box-shadow:none;padding:8mm 13mm 21mm;font-size:10px}
+  .sheet{display:flex;flex-direction:column;width:auto;min-height:285mm;box-shadow:none;padding:8mm 13mm 21mm;font-size:10px}
   .sheet .hd{padding-bottom:0}
   .rule{margin:14px 0}
   .sheet .meta{padding-top:0}
@@ -226,7 +226,8 @@ table.lines tbody tr.blank td{height:26px}
   .sums td{padding:6px 9px}
   .sums td,.sums th{white-space:nowrap}
   .sums td.k{white-space:normal}
-  .foot{position:absolute;left:0;right:0;bottom:0;margin:0;padding:7px 13mm 9px}
+  .foot{margin:0 -13mm;padding:7px 13mm 9px}
+  .closeblock{margin-top:auto;break-inside:avoid}
   .foot .ty{font-size:12px;margin-bottom:2px}
   .foot .lg{font-size:8.5px;line-height:1.35}
   .foot .cp{font-size:8.5px;margin-top:2px}
@@ -638,6 +639,7 @@ function render(){
       :`<tr class="tot"><td class="k">Total Sales Amount</td><td>USD ${fmt(c.totUSD)}</td><td>AED ${fmt(c.totAED)}</td></tr>`}`}
     </table></div>`}
   </div>
+  <div class="closeblock">
   <div class="rule"></div>
 
   ${hasRemarks
@@ -655,6 +657,7 @@ function render(){
     <div class="lg">If you have any questions about this ${(CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma).footWord}, please contact accounts@4power.biz.</div>
     <div class="lg">This is a computer-generated ${(CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma).footWord} and does not require a signature or stamp.</div>
     <div class="cp">© ${new Date().getFullYear()} 4POWER Infocom FZ LLC. All rights reserved.</div>
+  </div>
   </div>`;
 }
 function esc(s){return (s==null?'':String(s)).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}
@@ -712,6 +715,7 @@ function renderSimpleDoc(dt,c){
   </div>
   <div class="rule"></div>
   <table class="lines"><thead>${linesHead}</thead><tbody>${body}</tbody></table>
+  <div class="closeblock">
   <div class="rule"></div>
   ${(inv.remarks||'').trim()!==''
     ? `<div class="remit2">
@@ -729,6 +733,7 @@ function renderSimpleDoc(dt,c){
     <div class="lg">If you have any questions about this ${dt.footWord}, please contact accounts@4power.biz.</div>
     ${dt.signoff?'':`<div class="lg">This is a computer-generated ${dt.footWord} and does not require a signature or stamp.</div>`}
     <div class="cp">© ${new Date().getFullYear()} 4POWER Infocom FZ LLC. All rights reserved.</div>
+  </div>
   </div>`;
 }
 
