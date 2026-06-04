@@ -213,7 +213,7 @@ table.lines tbody tr.blank td{height:26px}
   .topbar,.controls,.setbar{display:none!important}
   .layout{display:block;height:auto}
   .stage{padding:0;overflow:visible;background:#fff;display:block}
-  .sheet{display:block;width:auto;min-height:285mm;box-shadow:none;padding:8mm 13mm 21mm;font-size:10px}
+  .sheet{display:block;width:auto;min-height:285mm;box-shadow:none;padding:8mm 13mm 0;font-size:10px}
   .sheet .hd{padding-bottom:0}
   .rule{margin:14px 0}
   .sheet .meta{padding-top:0}
@@ -226,7 +226,7 @@ table.lines tbody tr.blank td{height:26px}
   .sums td{padding:6px 9px}
   .sums td,.sums th{white-space:nowrap}
   .sums td.k{white-space:normal}
-  .foot{margin:0 -13mm;padding:7px 13mm 9px}
+  .foot{position:absolute;left:0;right:0;bottom:0;margin:0;padding:7px 13mm 9px}
   .closeblock{break-inside:avoid}
   .foot .ty{font-size:12px;margin-bottom:2px}
   .foot .lg{font-size:8.5px;line-height:1.35}
@@ -1208,6 +1208,47 @@ function init(){
   sheetEl.addEventListener('focusout',e=>{const el=e.target.closest&&e.target.closest('.ed');if(el&&el.getAttribute('data-field')==='terms')recompute();});
 }
 init();
+
+/* Print pagination: pad the sheet up to a whole number of printable pages so the
+   absolutely-positioned closing footer always lands at the bottom of the LAST page.
+   Content that doesn't fit pushes the footer to the next page as a whole; it never
+   floats mid-page. Runs only during print (beforeprint applies print CSS), reset after. */
+(function(){
+  var PAGE_MM = 285; // A4 (297mm) minus the 12mm @page bottom margin that carries the slim band
+  function mmToPx(mm){ return mm * 96 / 25.4; }
+  function paginate(){
+    var PAGE = mmToPx(PAGE_MM);
+    document.querySelectorAll('.sheet').forEach(function(sheet){
+      var foot = sheet.querySelector('.foot');
+      if(!foot) return;
+      // Measure natural content height with the footer in flow.
+      var savedMin = sheet.style.minHeight, savedPos = foot.style.position;
+      sheet.style.minHeight = '0';
+      foot.style.position = 'static';
+      void sheet.offsetHeight; // force reflow under print layout
+      var contentH = sheet.scrollHeight;
+      var pages = Math.max(1, Math.ceil((contentH - 4) / PAGE)); // -4px guards rounding
+      // Pad to whole pages (a hair under, so we never spawn a blank trailing page),
+      // then re-pin the footer to the bottom of that last page.
+      sheet.style.minHeight = (pages * PAGE - 2) + 'px';
+      foot.style.position = 'absolute';
+      foot.style.left = '0'; foot.style.right = '0'; foot.style.bottom = '0';
+      sheet._savedMin = savedMin; foot._savedPos = savedPos;
+    });
+  }
+  function reset(){
+    document.querySelectorAll('.sheet').forEach(function(sheet){
+      sheet.style.minHeight = sheet._savedMin || '';
+      var foot = sheet.querySelector('.foot');
+      if(foot){ foot.style.position = foot._savedPos || ''; foot.style.left=''; foot.style.right=''; foot.style.bottom=''; }
+    });
+  }
+  window.addEventListener('beforeprint', paginate);
+  window.addEventListener('afterprint', reset);
+  // Expose for headless verification
+  window.__paginateForPrint = paginate;
+  window.__resetPagination = reset;
+})();
 </script>
 </body>
 </html>
