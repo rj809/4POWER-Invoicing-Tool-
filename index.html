@@ -150,7 +150,14 @@ table.lines tbody tr.blank td{height:26px}
 .col-ser{width:110px}
 .checklist .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:3px 9px;margin-bottom:8px}
 .checklist .ck{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:10px;color:var(--navy)}
-.checklist .ck .box{width:11px;height:11px;border:1.4px solid var(--navy);border-radius:2px;flex:none}
+.checklist .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:3px 9px;margin-bottom:10px}
+.checklist .pills{display:flex;flex-wrap:wrap;gap:7px}
+.checklist .pill{border:1.4px solid var(--bd);background:#fff;color:var(--navy);border-radius:18px;
+  padding:6px 13px;font-size:10.5px;font-weight:500;cursor:pointer;line-height:1.2;transition:.12s;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact}
+.checklist .pill:hover{border-color:var(--teal,#0FB39A)}
+.checklist .pill.on{background:var(--teal,#0FB39A);border-color:var(--teal,#0FB39A);color:#fff}
+.checklist .pill.on:before{content:"✓ ";font-weight:700}
 .sheet .ed{outline:none;border-radius:3px;cursor:text;transition:background .12s;padding:0 2px;margin:0 -2px}
 .sheet .ed:hover{background:#EBF5FD}
 .sheet .ed:focus{background:#EBF5FD;box-shadow:0 0 0 2px rgba(20,120,220,.35)}
@@ -373,14 +380,31 @@ const CONFIG={
     domestic:"VAT charged at the standard rate of 5% as per UAE Federal Decree-Law No. 8 of 2017 on Value Added Tax."
   },
   defaults:{ terms:"Net 30", decl:"export", remit:"both" },
-  installChecklist:[
-    "Unit unpacked and inspected — no transit damage",
-    "Powered on; self-test completed successfully",
-    "Cash acceptance and dispensing verified",
-    "Connectivity to CBS / network confirmed",
-    "Customer staff trained on operation",
-    "Site cleaned and unit handed over to customer"
-  ],
+  checklists:{
+    packing:{ title:"Packing Checklist", items:[
+      "Items counted and verified against order",
+      "Serial numbers recorded",
+      "Cartons sealed and labelled",
+      "Fragile items protected",
+      "Gross / net weight recorded",
+      "Packing list enclosed"
+    ]},
+    delivery:{ title:"Delivery Checklist", items:[
+      "Goods delivered in full",
+      "Quantities verified against order",
+      "No visible damage on receipt",
+      "Customer acknowledgement obtained",
+      "Delivery date confirmed"
+    ]},
+    install:{ title:"Installation Checklist", items:[
+      "Unit unpacked and inspected — no transit damage",
+      "Powered on; self-test completed successfully",
+      "Cash acceptance and dispensing verified",
+      "Connectivity to CBS / network confirmed",
+      "Customer staff trained on operation",
+      "Site cleaned and unit handed over to customer"
+    ]}
+  },
   /* Document types — the engine. Add a type here and it appears in the switcher.
      logStage = where the linked Bigin deal moves when this doc is logged (null = no move). */
   docTypes:{
@@ -389,9 +413,9 @@ const CONFIG={
     domestic:     { label:"Domestic Tax Invoice", title:"TAX INVOICE",              numLabel:"Invoice #",       footWord:"tax invoice",          dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  vatRate:5, decl:"domestic",       cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
     exportgoods:  { label:"Export Invoice — Goods",title:"EXPORT INVOICE",          numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  vatRate:0, decl:"exportGoods",    cif:true,  signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
     exportservices:{label:"Export Invoice — Services",title:"EXPORT INVOICE",       numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:true,  pricing:true,  vatRate:0, decl:"exportServices", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
-    packingslip:{label:"Packing Slip",title:"PACKING SLIP",    numLabel:"Packing Slip #",  footWord:"packing slip",  dateLabel:"Date",            showSupply:false, pricing:false, signoff:true,  signLeft:"Packed by", signRight:"Received by", logStage:null },
-    deliverynote:{label:"Delivery Note",title:"DELIVERY NOTE", numLabel:"Delivery Note #", footWord:"delivery note", dateLabel:"Date",            showSupply:false, pricing:false, signoff:true,  signLeft:"Delivered by", signRight:"Received by", logStage:null },
-    installation:{label:"Installation Report",title:"INSTALLATION REPORT",numLabel:"Report #",footWord:"installation report",dateLabel:"Installation Date",showSupply:false,pricing:false,signoff:true,serials:true,checklist:true,signLeft:"Installed by (Engineer)",signRight:"Accepted by (Customer)",logStage:null }
+    packingslip:{label:"Packing Slip",title:"PACKING SLIP",    numLabel:"Packing Slip #",  footWord:"packing slip",  dateLabel:"Date",            showSupply:false, pricing:false, signoff:true,  checklist:"packing",  signLeft:"Packed by", signRight:"Received by", logStage:null },
+    deliverynote:{label:"Delivery Note",title:"DELIVERY NOTE", numLabel:"Delivery Note #", footWord:"delivery note", dateLabel:"Date",            showSupply:false, pricing:false, signoff:true,  checklist:"delivery", signLeft:"Delivered by", signRight:"Received by", logStage:null },
+    installation:{label:"Installation Report",title:"INSTALLATION REPORT",numLabel:"Report #",footWord:"installation report",dateLabel:"Installation Date",showSupply:false,pricing:false,signoff:true,serials:true,checklist:"install",signLeft:"Installed by (Engineer)",signRight:"Accepted by (Customer)",logStage:null }
   }
 };
 const COMPANY=CONFIG.company;
@@ -417,7 +441,7 @@ function blank(mode){
     custId:'',attention:'',yourRef:'',poNumber:'',
     billName:'',billAddr:'',delName:'',delAddr:'',
     terms:CONFIG.defaults.terms,decl:CONFIG.defaults.decl,rate:CONFIG.fx.default,remit:CONFIG.defaults.remit,freightIns:'',
-    numbers:{},set:[mode],
+    numbers:{},set:[mode],checks:{},
     items:[{part:'',desc:'',hsn:'',qty:1,price:0,vat:0}]};
 }
 function load(k,d){try{const v=localStorage.getItem('4p_inv_'+k);return v?JSON.parse(v):d}catch(e){return d}}
@@ -581,10 +605,13 @@ function renderSimpleDoc(dt,c){
       <div class="so"><div class="h">${dt.signRight||'Received by'}</div><div class="soline">Name</div><div class="soline">Signature</div><div class="soline">Date</div></div>
     </div><div class="rule"></div>`;
   let checklist='';
-  if(dt.checklist&&CONFIG.installChecklist&&CONFIG.installChecklist.length)
-    checklist=`<div class="checklist"><div class="h">Installation Checklist</div>`+
-      CONFIG.installChecklist.map(t=>`<div class="ck"><span class="box"></span><span class="t">${esc(t)}</span></div>`).join('')+
-      `</div><div class="rule"></div>`;
+  const clKey=dt.checklist, cl=clKey&&CONFIG.checklists&&CONFIG.checklists[clKey];
+  if(cl&&cl.items&&cl.items.length){
+    const sel=(inv.checks&&inv.checks[inv.mode])||[];
+    checklist=`<div class="checklist"><div class="h">${esc(cl.title||'Checklist')}</div><div class="pills">`+
+      cl.items.map((t,i)=>`<button type="button" class="pill${sel.includes(i)?' on':''}" data-ci="${i}">${esc(t)}</button>`).join('')+
+      `</div></div><div class="rule"></div>`;
+  }
   const linesHead=`<tr><th class="col-no">No</th><th class="l">Description</th>${serCol?'<th class="col-ser">Serial No.</th>':''}<th class="col-qty">Qty</th></tr>`;
   document.getElementById('sheet').innerHTML=`
   <div class="hd"><div>${LOGO_LIGHT}</div><div class="doctitle">${ed('docTitle',inv.docTitle,'Document title')}</div></div>
@@ -1068,6 +1095,11 @@ function init(){
     const pin=document.getElementById(f);if(pin&&'value'in pin)pin.value=inv[f];
     persist();if(curStep===4&&typeof renderReview==='function')renderReview();});
   sheetEl.addEventListener('keydown',e=>{const el=e.target.closest('.ed');if(el&&e.key==='Enter'){e.preventDefault();el.blur();}});
+  sheetEl.addEventListener('click',e=>{const pill=e.target.closest('.pill');if(!pill)return;
+    const i=parseInt(pill.getAttribute('data-ci'));if(isNaN(i))return;
+    if(!inv.checks)inv.checks={};const arr=inv.checks[inv.mode]||(inv.checks[inv.mode]=[]);
+    const at=arr.indexOf(i);if(at>=0)arr.splice(at,1);else arr.push(i);
+    persist();render();});
   sheetEl.addEventListener('focusout',e=>{const el=e.target.closest&&e.target.closest('.ed');if(el&&el.getAttribute('data-field')==='terms')recompute();});
 }
 init();
