@@ -464,9 +464,9 @@ function render(){
   <div class="meta">
     <div class="co"><div class="nm">${COMPANY.name}</div><div class="ln">${COMPANY.lines.map(l=>esc(l)).join('<br>')}</div></div>
     <table class="mtbl">
-      <tr><td class="k">Date of Invoice</td><td class="v">${dmy(inv.dateInvoice)||'—'}</td></tr>
-      <tr><td class="k">${(CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma).numLabel}</td><td class="v">${ed('docNumber',inv.docNumber,'Number')}</td></tr>
-      <tr><td class="k">Date of Supply</td><td class="v">${dmy(inv.dateSupply)||'—'}</td></tr>
+      <tr><td class="k">${dtR2.dateLabel||'Date'}</td><td class="v">${dmy(inv.dateInvoice)||'—'}</td></tr>
+      <tr><td class="k">${dtR2.numLabel}</td><td class="v">${ed('docNumber',inv.docNumber,'Number')}</td></tr>
+      ${dtR2.showSupply?`<tr><td class="k">Date of Supply</td><td class="v">${dmy(inv.dateSupply)||'—'}</td></tr>`:''}
       <tr><td class="k">Our Reference</td><td class="v">${esc(inv.ourRef)||'—'}</td></tr>
       <tr><td class="k">Project Name</td><td class="v">${ed('project',inv.project,'Project name')}</td></tr>
     </table>
