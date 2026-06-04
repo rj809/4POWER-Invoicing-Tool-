@@ -738,10 +738,10 @@ function renderSimpleDoc(dt,c){
 
 /* ---------------- bindings ---------------- */
 function bind(){
-  const map={docTitle:'docTitle',docNumber:'docNumber',dateInvoice:'dateInvoice',dateSupply:'dateSupply',
+  const map={docTitle:'docTitle',docNumber:'docNumber',dateInvoice:'dateInvoice',
     ourRef:'ourRef',project:'project',custId:'custId',attention:'attention',poNumber:'poNumber',
     billName:'billName',billAddr:'billAddr',delName:'delName',delAddr:'delAddr'};
-  Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);el.addEventListener('input',()=>{inv[key]=el.value;recompute()})});
+  Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>{inv[key]=el.value;recompute()})});
   ['terms','rate','remit'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',()=>{inv[id]=el.value;recompute()})});
 }
 function syncForm(){
