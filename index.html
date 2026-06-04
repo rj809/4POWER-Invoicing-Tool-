@@ -201,17 +201,19 @@ table.lines tbody tr.blank td{height:26px}
   .topbar,.controls,.setbar{display:none!important}
   .layout{display:block;height:auto}
   .stage{padding:0;overflow:visible;background:#fff;display:block}
-  .sheet{width:auto;min-height:282mm;box-shadow:none;padding:8mm 13mm 0;font-size:10px}
+  .sheet{width:auto;min-height:auto;box-shadow:none;padding:8mm 13mm 18mm;font-size:10px}
   .sheet .hd{padding-bottom:4px}
-  .rule{margin:9px 0}
+  .rule{margin:6px 0}
   .sheet .meta{padding-top:2px}
   table.lines tbody td{padding:6px 5px}
   table.lines tbody tr.blank td{height:9px}
   .decl{margin-top:7px;padding:8px 12px}
   .aiw .band,.sums th{padding:5px 8px}
   .aiw .r .k,.aiw .r .v,.sums td{padding:4px 8px}
-  .foot{margin:auto -13mm 0;padding:11px 13mm}
-  .foot .ty{margin-bottom:4px}
+  .foot{position:fixed;left:0;right:0;bottom:0;margin:0;padding:7px 13mm}
+  .foot .ty{font-size:12.5px;margin-bottom:2px}
+  .foot .lg{font-size:8px;line-height:1.45}
+  .foot .cp{font-size:8px;margin-top:1px}
   table.lines thead{display:table-header-group}
   table.lines tr{break-inside:avoid}
   .totwrap,.decl,.remit2,.foot{break-inside:avoid}
@@ -493,8 +495,8 @@ function render(){
     <td class="col-no">${n}</td>
     <td class="l"><div class="li-desc">${esc(r.desc)}</div>${sub?`<div class="li-sub">${sub}</div>`:''}</td>
     <td class="col-qty">${r.qty}</td>
-    <td>USD ${fmt(r.price)}</td><td>USD ${fmt(r.net)}</td><td>${r.vr||0}%</td>
-    <td>USD ${fmt(r.vatAmt)}</td><td>USD ${fmt(r.tUSD)}</td><td>AED ${fmt(r.tAED)}</td></tr>`});
+    <td>${fmt(r.price)}</td><td>${fmt(r.net)}</td><td>${r.vr||0}%</td>
+    <td>${fmt(r.vatAmt)}</td><td>${fmt(r.tUSD)}</td><td>${fmt(r.tAED)}</td></tr>`});
   for(let i=0;i<minRows;i++)body+=`<tr class="blank"><td class="col-no"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
   if(filled.length===0&&minRows===0)body=`<tr><td colspan="9" class="l empty-note">Add a line item to begin…</td></tr>`;
 
