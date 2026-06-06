@@ -234,6 +234,10 @@ table.lines tbody tr.blank td{height:26px}
   table.lines thead{display:table-header-group}
   table.lines tr{break-inside:avoid}
   .totwrap,.decl,.remit2,.foot{break-inside:avoid}
+  .remit2.noremarks{grid-template-columns:1fr}
+  .remit2.noremarks .rmk-col{display:none}
+  .remit2.noremarks .bankg{grid-template-columns:repeat(3,1fr);gap:11px 22px}
+  .remit2.noremarks .bankg .f.full{grid-column:auto}
   .sheet .ed{background:none!important;box-shadow:none!important}
   .sheet .ed:empty:before{content:'—';color:#000}
 }
@@ -641,13 +645,9 @@ function render(){
   <div class="closeblock">
   <div class="rule"></div>
 
-  ${hasRemarks
-    ? `<div class="remit2">
-    <div><div class="h">Additional Remarks</div><div class="ed edm remarks ln" contenteditable="true" spellcheck="false" data-field="remarks" data-ph="Add remarks…">${esc(inv.remarks)}</div></div>
-    <div><div class="h">Remit To</div><div class="bankg">${bankHtml}</div></div>
-  </div>`
-    : `<div class="remit2 solo">
-    <div><div class="h">Remit To</div><div class="bankg wide">${bankHtml}</div></div>
+  ${`<div class="remit2${hasRemarks?'':' noremarks'}">
+    <div class="rmk-col"><div class="h">Additional Remarks</div><div class="ed edm remarks ln" contenteditable="true" spellcheck="false" data-field="remarks" data-ph="Click to add remarks…">${esc(inv.remarks)}</div></div>
+    <div class="rmt-col"><div class="h">Remit To</div><div class="bankg">${bankHtml}</div></div>
   </div>`}
   <div class="rule"></div>
 
@@ -716,13 +716,9 @@ function renderSimpleDoc(dt,c){
   <table class="lines"><thead>${linesHead}</thead><tbody>${body}</tbody></table>
   <div class="closeblock">
   <div class="rule"></div>
-  ${(inv.remarks||'').trim()!==''
-    ? `<div class="remit2">
-    <div><div class="h">Additional Remarks</div><div class="ed edm remarks ln" contenteditable="true" spellcheck="false" data-field="remarks" data-ph="Add remarks…">${esc(inv.remarks)}</div></div>
-    <div><div class="h">Summary</div><div class="bank">Total line items: ${filled.length}<br>Total quantity: ${totQty}</div></div>
-  </div>`
-    : `<div class="remit2 solo">
-    <div><div class="h">Summary</div><div class="bank">Total line items: ${filled.length}<br>Total quantity: ${totQty}</div></div>
+  ${`<div class="remit2${(inv.remarks||'').trim()!==''?'':' noremarks'}">
+    <div class="rmk-col"><div class="h">Additional Remarks</div><div class="ed edm remarks ln" contenteditable="true" spellcheck="false" data-field="remarks" data-ph="Click to add remarks…">${esc(inv.remarks)}</div></div>
+    <div class="rmt-col"><div class="h">Summary</div><div class="bank">Total line items: ${filled.length}<br>Total quantity: ${totQty}</div></div>
   </div>`}
   <div class="rule"></div>
   ${checklist}
@@ -1207,47 +1203,6 @@ function init(){
   sheetEl.addEventListener('focusout',e=>{const el=e.target.closest&&e.target.closest('.ed');if(el&&el.getAttribute('data-field')==='terms')recompute();});
 }
 init();
-
-/* Print pagination: pad the sheet up to a whole number of printable pages so the
-   absolutely-positioned closing footer always lands at the bottom of the LAST page.
-   Content that doesn't fit pushes the footer to the next page as a whole; it never
-   floats mid-page. Runs only during print (beforeprint applies print CSS), reset after. */
-(function(){
-  var PAGE_MM = 285; // A4 (297mm) minus the 12mm @page bottom margin that carries the slim band
-  function mmToPx(mm){ return mm * 96 / 25.4; }
-  function paginate(){
-    var PAGE = mmToPx(PAGE_MM);
-    document.querySelectorAll('.sheet').forEach(function(sheet){
-      var foot = sheet.querySelector('.foot');
-      if(!foot) return;
-      // Measure natural content height with the footer in flow.
-      var savedMin = sheet.style.minHeight, savedPos = foot.style.position;
-      sheet.style.minHeight = '0';
-      foot.style.position = 'static';
-      void sheet.offsetHeight; // force reflow under print layout
-      var contentH = sheet.scrollHeight;
-      var pages = Math.max(1, Math.ceil((contentH - 4) / PAGE)); // -4px guards rounding
-      // Pad to whole pages (a hair under, so we never spawn a blank trailing page),
-      // then re-pin the footer to the bottom of that last page.
-      sheet.style.minHeight = (pages * PAGE - 2) + 'px';
-      foot.style.position = 'absolute';
-      foot.style.left = '0'; foot.style.right = '0'; foot.style.bottom = '0';
-      sheet._savedMin = savedMin; foot._savedPos = savedPos;
-    });
-  }
-  function reset(){
-    document.querySelectorAll('.sheet').forEach(function(sheet){
-      sheet.style.minHeight = sheet._savedMin || '';
-      var foot = sheet.querySelector('.foot');
-      if(foot){ foot.style.position = foot._savedPos || ''; foot.style.left=''; foot.style.right=''; foot.style.bottom=''; }
-    });
-  }
-  window.addEventListener('beforeprint', paginate);
-  window.addEventListener('afterprint', reset);
-  // Expose for headless verification
-  window.__paginateForPrint = paginate;
-  window.__resetPagination = reset;
-})();
 </script>
 </body>
 </html>
