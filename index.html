@@ -203,11 +203,18 @@ table.lines tbody tr.blank td{height:26px}
 .empty-note{font-size:10.5px;color:var(--mut);font-style:italic}
 
 @media print{
-  @page{size:A4;margin:0 0 12mm 0;
+  @page{size:A4;margin:14mm 0 12mm 0;
+    @top-left{content:"4POWER";color:#0B1C3E;font-family:'Poppins',sans-serif;font-size:13px;font-weight:800;letter-spacing:.04em;text-align:left;vertical-align:bottom;padding:0 0 3mm 13mm;border-bottom:0.4mm solid #D8D6CE}
+    @top-center{content:"";vertical-align:bottom;border-bottom:0.4mm solid #D8D6CE}
+    @top-right{content:"Continued · Page " counter(page) " of " counter(pages);color:#8A93A2;font-family:'Poppins',sans-serif;font-size:8.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;text-align:right;vertical-align:bottom;padding:0 13mm 3mm 0;border-bottom:0.4mm solid #D8D6CE}
     @bottom-left{content:"www.4power.biz";background:#0B1C3E;color:#fff;font-family:'Poppins',sans-serif;font-size:9px;font-weight:500;text-align:left;padding:0 0 0 13mm}
     @bottom-center{content:"";background:#0B1C3E}
     @bottom-right{content:"Page " counter(page) " of " counter(pages);
       background:#0B1C3E;color:#fff;font-family:'Poppins',sans-serif;font-size:9px;font-weight:500;text-align:right;padding:0 13mm 0 0}}
+  @page :first{margin-top:0;
+    @top-left{content:none;border-bottom:0}
+    @top-center{content:none;border-bottom:0}
+    @top-right{content:none;border-bottom:0}}
   body{background:#fff;display:block;height:auto;overflow:visible}
   .sheet,.sheet *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   .topbar,.controls,.setbar{display:none!important}
