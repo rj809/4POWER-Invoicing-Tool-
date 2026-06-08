@@ -535,8 +535,8 @@ function compute(){
 function updateHeaderRef(){
   var dt=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
   var ref='';
-  if(dt.noNumber){ if((inv.ourRef||'').trim()) ref='Our Reference '+String(inv.ourRef).trim(); }
-  else if((inv.docNumber||'').trim()){ ref=String(dt.numLabel).trim()+' '+String(inv.docNumber).trim(); }
+  if((inv.ourRef||'').trim()) ref='Our Reference '+String(inv.ourRef).trim();
+  else if(!dt.noNumber && (inv.docNumber||'').trim()) ref=String(dt.numLabel).trim()+' '+String(inv.docNumber).trim();
   var txt=ref ? ('4POWER      '+ref) : '4POWER';
   txt=txt.replace(/\\/g,'\\\\').replace(/"/g,'\\"');
   var st=document.getElementById('pageHeaderRef');
