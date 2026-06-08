@@ -182,11 +182,11 @@ table.lines tbody tr.blank td{height:26px}
 .decl p{font-size:8.5px;font-weight:300;line-height:1.55}
 .remit2{margin-top:0;display:grid;grid-template-columns:1.18fr 1fr;gap:14px;align-items:start}
 .remit2.solo{grid-template-columns:1fr}
-.remit2 .bankg.wide{grid-template-columns:repeat(3,1fr);gap:11px 22px}
+.remit2 .bankg.wide{grid-template-columns:repeat(3,1fr);gap:14px 22px}
 .remit2 .bankg.wide .f.full{grid-column:auto}
 .remit2 .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:4px 9px;margin-bottom:7px}
 .remit2 .bank{font-size:10px;font-weight:300;line-height:1.75}
-.remit2 .bankg{display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;align-items:start;margin-top:1px}
+.remit2 .bankg{display:grid;grid-template-columns:1fr 1fr;gap:13px 14px;align-items:start;margin-top:1px}
 .remit2 .bankg .f{display:flex;flex-direction:column;gap:4px;min-width:0}
 .remit2 .bankg .f.full{grid-column:1 / -1}
 .remit2 .bankg .bl{font-family:var(--body);font-weight:700;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);line-height:1}
@@ -240,7 +240,7 @@ table.lines tbody tr.blank td{height:26px}
   .totwrap,.decl,.remit2,.foot{break-inside:avoid}
   .remit2.noremarks{grid-template-columns:1fr}
   .remit2.noremarks .rmk-col{display:none}
-  .remit2.noremarks .bankg{grid-template-columns:repeat(3,1fr);gap:11px 22px}
+  .remit2.noremarks .bankg{grid-template-columns:repeat(3,1fr);gap:14px 22px}
   .remit2.noremarks .bankg .f.full{grid-column:auto}
   .sheet .ed{background:none!important;box-shadow:none!important}
   .sheet .ed:empty:before{content:'—';color:#000}
@@ -421,7 +421,7 @@ const CONFIG={
     bankName:"First Abu Dhabi Bank (FAB)",
     branch:"Sheikh Zayed Road, Dubai, UAE",
     aedAc:"1031 3219 3166 4010", usdAc:"1031 0019 3166 4024",
-    aedIban:"AE860330000019100017280", usdIban:"AE 8503 5103 1001 9316 6402 4", swift:"NBADAEAA"
+    aedIban:"AE860330000019100017280", usdIban:"AE850351031001931664024", swift:"NBADAEAA"
   },
   fx:{ default:3.6725, label:"Central Bank Rate used for USD to AED conversion" },
   declarations:{
