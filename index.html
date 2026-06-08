@@ -419,7 +419,7 @@ const CONFIG={
   bank:{
     name:"4POWER Infocom FZ LLC",
     bankName:"First Abu Dhabi Bank (FAB)",
-    branch:"Sheikh Zayed Road, Dubai, UAE",
+    branch:"Sheikh Zayed Rd, Dubai, UAE",
     aedAc:"1031 3219 3166 4010", usdAc:"1031 0019 3166 4024",
     aedIban:"AE860330000019100017280", usdIban:"AE850351031001931664024", swift:"NBADAEAA"
   },
@@ -569,12 +569,12 @@ function render(){
   const bankFields=[
     {l:'Account Name',v:BANK.name},
     {l:'Bank',v:BANK.bankName},
-    {l:'Branch',v:BANK.branch,full:1},
+    {l:'Branch',v:BANK.branch},
+    {l:'SWIFT',v:BANK.swift},
     ...(showAed?[{l:'Account No. (AED)',v:BANK.aedAc}]:[]),
     ...(showUsd?[{l:'Account No. (US$)',v:BANK.usdAc}]:[]),
     ...(showAed?[{l:'IBAN (AED)',v:BANK.aedIban}]:[]),
     ...(showUsd?[{l:'IBAN (US$)',v:BANK.usdIban}]:[]),
-    {l:'SWIFT',v:BANK.swift},
   ];
   const bankHtml=bankFields.map(f=>`<div class="f${f.full?' full':''}"><span class="bl">${esc(f.l)}</span><span class="bv">${esc(f.v)}</span></div>`).join('');
   const hasRemarks=(inv.remarks||'').trim()!=='';
