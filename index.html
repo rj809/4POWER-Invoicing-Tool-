@@ -424,10 +424,11 @@ const CONFIG={
   },
   fx:{ default:3.6725, label:"Central Bank Rate used for USD to AED conversion" },
   declarations:{
-    proforma:"The supplies mentioned in the invoice are out of scope as the place of supply of such goods/services is outside the UAE.",
-    exportServices:"The services in this Invoice are meant for export as the place of supply of such services is outside the UAE, and are zero-rated for VAT under UAE Federal Decree-Law No. 8 of 2017.",
-    exportGoods:"The goods in this Invoice are for export outside the UAE and are zero-rated for VAT under UAE Federal Decree-Law No. 8 of 2017.",
-    domestic:"VAT charged at the standard rate of 5% as per UAE Federal Decree-Law No. 8 of 2017 on Value Added Tax."
+    standard:"VAT charged at the standard rate of 5% as per UAE Federal Decree-Law No. 8 of 2017 on Value Added Tax.",
+    oos:"The goods/services mentioned in the invoice are out of scope as the place of supply of such goods/services is outside the UAE.",
+    zeroGoods:"The goods in this Invoice are for export outside the UAE and are zero-rated for VAT under UAE Federal Decree-Law No. 8 of 2017.",
+    zeroServices:"The services in this Invoice are meant for export as the place of supply of such services is outside the UAE, and are zero-rated for VAT under UAE Federal Decree-Law No. 8 of 2017.",
+    exempt:"The supplies in this Invoice are exempt from VAT under UAE Federal Decree-Law No. 8 of 2017 on Value Added Tax."
   },
   defaults:{ terms:"Net 30", decl:"export", remit:"both" },
   checklists:{
@@ -459,10 +460,10 @@ const CONFIG={
      logStage = where the linked Bigin deal moves when this doc is logged (null = no move). */
   docTypes:{
     quotation:    { label:"Quotation",            title:"QUOTATION",                numLabel:"Quotation #",     footWord:"quotation",            dateLabel:"Date",            showSupply:false, pricing:true,  vatRate:0, decl:null,             cif:false, signoff:false, noNumber:true, logStage:{pipeline:"Quotations",stage:"Submit Quotation"} },
-    proforma:     { label:"Proforma",             title:"PROFORMA INVOICE",         numLabel:"Proforma #",      footWord:"proforma",             dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, vatLabel:"OOS", decl:"proforma", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
-    domestic:     { label:"Domestic Tax Invoice", title:"TAX INVOICE",              numLabel:"Invoice #",       footWord:"tax invoice",          dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:5, decl:"domestic",       cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
-    exportgoods:  { label:"Export Invoice — Goods",title:"EXPORT INVOICE",          numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, decl:"exportGoods",    cif:true,  signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
-    exportservices:{label:"Export Invoice — Services",title:"EXPORT INVOICE",       numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, decl:"exportServices", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
+    proforma:     { label:"Proforma",             title:"PROFORMA INVOICE",         numLabel:"Proforma #",      footWord:"proforma",             dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, vatLabel:"OOS", decl:true, nature:"goods", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
+    domestic:     { label:"Domestic Tax Invoice", title:"TAX INVOICE",              numLabel:"Invoice #",       footWord:"tax invoice",          dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:5, decl:true, nature:"goods",       cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
+    exportgoods:  { label:"Export Invoice — Goods",title:"EXPORT INVOICE",          numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, decl:true, nature:"goods",    cif:true,  signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
+    exportservices:{label:"Export Invoice — Services",title:"EXPORT INVOICE",       numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, decl:true, nature:"services", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
     packingslip:{label:"Packing Slip",title:"PACKING SLIP",    numLabel:"Packing Slip #",  footWord:"packing slip",  dateLabel:"Date",            showSupply:false, pricing:false, signoff:true,  checklist:"packing",  signLeft:"Packed by", signRight:"Received by", logStage:null },
     deliverynote:{label:"Delivery Note",title:"DELIVERY NOTE", numLabel:"Delivery Note #", footWord:"delivery note", dateLabel:"Date",            showSupply:false, pricing:false, signoff:true,  checklist:"delivery", signLeft:"Delivered by", signRight:"Received by", logStage:null },
     installation:{label:"Installation Report",title:"INSTALLATION REPORT",numLabel:"Report #",footWord:"installation report",dateLabel:"Installation Date",showSupply:false,pricing:false,signoff:true,serials:true,checklist:"install",signLeft:"Installed by (Engineer)",signRight:"Accepted by (Customer)",logStage:null }
@@ -520,6 +521,15 @@ function defVat(mode){
   const dt=CONFIG.docTypes[mode]||CONFIG.docTypes.proforma;
   if(dt.vatLabel==='OOS')return 'oos';
   return String(dt.vatRate||0);
+}
+// Declaration text driven by the selected VAT treatment. For zero-rated (0%), the goods/services
+// wording is resolved from the document type's nature.
+function declFor(vat,nature){
+  const D=CONFIG.declarations;
+  if(vat==='5')return D.standard;
+  if(vat==='oos')return D.oos;
+  if(vat==='exempt')return D.exempt;
+  return (nature==='services')?D.zeroServices:D.zeroGoods;   // '0' zero-rated
 }
 
 /* ---------------- compute ---------------- */
@@ -579,8 +589,8 @@ function render(){
   if(filled.length===0&&minRows===0)body=`<tr><td colspan="${cols}" class="l empty-note">Add a line item to begin…</td></tr>`;
 
   const dtR2=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
-  const declText=dtR2.decl?(CONFIG.declarations[dtR2.decl]||''):'';
-  const fxStamp=inv.dateInvoice?(' (as at '+dmy(inv.dateInvoice)+')'):'';
+  const declText=dtR2.decl?declFor(inv.vat,dtR2.nature):'';
+  const fxStamp='';
   const showAed=inv.remit!=='usd', showUsd=inv.remit!=='aed';
   const bankFields=[
     {l:'Account Name',v:BANK.name},
