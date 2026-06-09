@@ -382,6 +382,7 @@ table.lines tbody tr.blank td{height:26px}
       <summary>Manage product catalogue</summary>
       <div id="catList"></div>
       <button class="miniadd" onclick="addCat()">+ Add product</button>
+      <button class="miniadd" id="cloudSaveBtn" onclick="saveCloudCatalogue()">Save to cloud</button>
     </details>
     </section>
     <section class="wstep" data-step="4">
@@ -497,6 +498,41 @@ function blank(mode){
 }
 function load(k,d){try{const v=localStorage.getItem('4p_inv_'+k);return v?JSON.parse(v):d}catch(e){return d}}
 function save(k,v){try{localStorage.setItem('4p_inv_'+k,JSON.stringify(v))}catch(e){}}
+
+/* ---------- cloud catalogue (n8n) ---------- */
+const CLOUD_URL='https://launch4power.app.n8n.cloud/webhook/4p-catalogue';
+function cloudMap(arr){return (arr||[]).map(r=>({part:(r.part||'').toString(),desc:(r.desc!=null?r.desc:(r.description||'')).toString(),hsn:(r.hsn||'').toString(),price:parseFloat(r.price)||0})).filter(r=>r.part||r.desc);}
+async function fetchCloudCatalogue(){
+  try{
+    const res=await fetch(CLOUD_URL,{method:'GET',cache:'no-store'});
+    if(!res.ok)return;
+    const data=await res.json();
+    const arr=Array.isArray(data)?data:(data&&Array.isArray(data.catalogue)?data.catalogue:null);
+    if(!arr||!arr.length)return;            // empty/odd response: keep cached/default
+    catalogue=cloudMap(arr);
+    save('cat',catalogue);                  // refresh local cache for offline use
+    if(typeof renderCat==='function')renderCat();
+    if(typeof renderItems==='function')renderItems();
+  }catch(e){/* offline or unreachable: silently keep cached/default catalogue */}
+}
+function getAdminKey(){let k=load('adminkey','');if(!k){k=(prompt('Enter the catalogue admin key to save to cloud:')||'').trim();if(k)save('adminkey',k);}return k;}
+async function saveCloudCatalogue(){
+  const key=getAdminKey();
+  if(!key){alert('Save cancelled — no admin key entered.');return;}
+  const btn=document.getElementById('cloudSaveBtn');
+  if(btn){btn.disabled=true;btn.textContent='Saving…';}
+  try{
+    const payload={adminKey:key,catalogue:catalogue.map((c,i)=>({part:c.part,desc:c.desc,hsn:c.hsn,price:c.price,sort_order:i+1}))};
+    const res=await fetch(CLOUD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const out=await res.json().catch(()=>({}));
+    if(res.ok&&out.ok){alert('Catalogue saved to cloud ('+(out.count!=null?out.count:catalogue.length)+' products). Colleagues get it on their next load.');}
+    else{
+      if(res.status===401){try{localStorage.removeItem('4p_inv_adminkey')}catch(e){}}
+      alert('Save failed: '+(out.error||('HTTP '+res.status))+(res.status===401?' — admin key cleared, try again with the correct key.':''));
+    }
+  }catch(e){alert('Save failed — could not reach the cloud. Check your connection and that the workflow is Active in n8n.');}
+  finally{if(btn){btn.disabled=false;btn.textContent='Save to cloud';}}
+}
 
 /* ---------------- helpers ---------------- */
 function fmt(n){return (n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
@@ -1235,6 +1271,7 @@ function init(){
   try{localStorage.removeItem('4p_inv_draft')}catch(e){}
   inv=blank('proforma');
   bind();initCustomerSearch();initDocTypes();renderCat();renderItems();setMode(inv.mode||'proforma');goStep(1);
+  fetchCloudCatalogue();
   const sheetEl=document.getElementById('sheet');
   sheetEl.addEventListener('input',e=>{const el=e.target.closest('.ed');if(!el)return;
     const f=el.getAttribute('data-field');if(!f)return;
