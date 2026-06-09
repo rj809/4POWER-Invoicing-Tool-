@@ -525,7 +525,7 @@ async function saveCloudCatalogue(){
     const payload={adminKey:key,catalogue:catalogue.map((c,i)=>({part:c.part,desc:c.desc,hsn:c.hsn,price:c.price,sort_order:i+1}))};
     const res=await fetch(CLOUD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const out=await res.json().catch(()=>({}));
-    if(res.ok&&out.ok){alert('Catalogue saved to cloud ('+(out.count!=null?out.count:catalogue.length)+' products). Colleagues get it on their next load.');}
+    if(res.ok){alert('Catalogue saved to cloud ('+(out.count!=null?out.count:catalogue.length)+' products). Colleagues get it on their next load.');}
     else{
       if(res.status===401){try{localStorage.removeItem('4p_inv_adminkey')}catch(e){}}
       alert('Save failed: '+(out.error||('HTTP '+res.status))+(res.status===401?' — admin key cleared, try again with the correct key.':''));
