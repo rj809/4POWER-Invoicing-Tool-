@@ -580,7 +580,7 @@ function render(){
   let body='';let n=0;
   filled.forEach(r=>{n++;
     const sub=[ (r.part&&r.part!=='-')?('Part&nbsp;#&nbsp;'+esc(r.part)):'', (r.hsn&&r.hsn!=='-')?('HSN&nbsp;Code&nbsp;'+esc(r.hsn)):'' ].filter(Boolean).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
-    const lead=`<td class="col-no">${n}</td><td class="l"><div class="li-desc">${esc(r.desc)}</div>${sub?`<div class="li-sub">${sub}</div>`:''}</td><td class="col-qty">${r.qty}</td><td>${fmt(r.price)}</td><td>${fmt(r.net)}</td><td>${c.vlabel}</td><td>${c.vatNoAmt?'—':fmt(r.vatAmt)}</td><td>${fmt(r.tUSD)}</td>`;
+    const lead=`<td class="col-no">${n}</td><td class="l"><div class="li-desc">${esc(r.desc)}</div>${sub?`<div class="li-sub">${sub}</div>`:''}</td><td class="col-qty">${r.qty}</td><td>${fmt(r.price)}</td><td>${fmt(r.net)}</td><td>${c.vlabel}</td><td>${fmt(r.vatAmt)}</td><td>${fmt(r.tUSD)}</td>`;
     body+= aed ? `<tr>${lead}</tr>` : `<tr>${lead}<td>${fmt(r.tAED)}</td></tr>`;
   });
   const cols=aed?8:9;
