@@ -347,7 +347,7 @@ table.lines tbody tr.blank td{height:26px}
       <div class="fld"><label>Due Date (auto)</label><input id="dueDate" readonly style="background:var(--s2)"></div>
     </div>
     <div class="row2">
-      <div class="fld"><label>VAT (set by document type)</label><input id="vatNote" readonly style="background:var(--s2)"></div>
+      <div class="fld"><label>VAT rate</label><select id="vatSel"><option value="5">5% (standard)</option><option value="0">0% (zero-rated)</option><option value="oos">OOS (out of scope)</option><option value="exempt">Exempt</option></select></div>
       <div class="fld" id="rateFld"><label class="req">USD → AED rate</label><input id="rate" type="number" step="0.0001" placeholder="e.g. 3.6725" oninput="recompute()"></div>
     </div>
     <div id="cifWrap" style="display:none">
@@ -491,7 +491,7 @@ function blank(mode){
     custId:'',attention:'',yourRef:'',poNumber:'',
     billName:'',billAddr:'',delName:'',delAddr:'',
     terms:CONFIG.defaults.terms,decl:CONFIG.defaults.decl,rate:CONFIG.fx.default,remit:CONFIG.defaults.remit,freight:'',insurance:'',discount:'',advance:'',remarks:'',
-    numbers:{},set:[mode],checks:{},aedOnly:false,
+    numbers:{},set:[mode],checks:{},aedOnly:false,vat:defVat(mode),
     items:[{part:'',desc:'',hsn:'',qty:1,price:0,vat:0}]};
 }
 function load(k,d){try{const v=localStorage.getItem('4p_inv_'+k);return v?JSON.parse(v):d}catch(e){return d}}
@@ -508,11 +508,27 @@ function words(n){n=Math.floor(n);if(n===0)return'zero';const sc=[['billion',1e9
 function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
 function amountWords(amt,cur){const i=Math.floor(amt+1e-6);const f=Math.round((amt-i)*100);let s=cap(words(i));if(f>0)s+=' and '+words(f)+(cur==='AED'?' fils':' cents');return s}
 
+/* ---------------- VAT options (user-selectable across all templates) ---------------- */
+const VAT_OPTS={
+  '5':     {rate:5, label:'5%',     noAmt:false},
+  '0':     {rate:0, label:'0%',     noAmt:false},
+  'oos':   {rate:0, label:'OOS',    noAmt:true },
+  'exempt':{rate:0, label:'Exempt', noAmt:true }
+};
+// Default VAT selection for a document type (used as the starting point; user can override).
+function defVat(mode){
+  const dt=CONFIG.docTypes[mode]||CONFIG.docTypes.proforma;
+  if(dt.vatLabel==='OOS')return 'oos';
+  return String(dt.vatRate||0);
+}
+
 /* ---------------- compute ---------------- */
 function compute(){
   const rate=parseFloat(inv.rate)||RATE_DEFAULT;
   const dt=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
-  const vrate=(dt.vatRate!=null)?dt.vatRate:0;   // VAT % locked by document type
+  const vopt=VAT_OPTS[inv.vat]||VAT_OPTS[defVat(inv.mode)]||VAT_OPTS['0'];
+  const vrate=vopt.rate;                 // VAT % from the user's selection
+  const vlabel=vopt.label, vatNoAmt=vopt.noAmt;
   let netT=0,vatLines=0;
   const rows=inv.items.map(it=>{
     const qty=parseFloat(it.qty)||0,price=parseFloat(it.price)||0;
@@ -528,7 +544,7 @@ function compute(){
   const totUSD=netAfterDisc+vatT, totAED=totUSD*rate;
   const freight=parseFloat(inv.freight)||0, insurance=parseFloat(inv.insurance)||0, cif=freight+insurance, cifUSD=netT+cif, cifAED=cifUSD*rate;
   const balanceUSD=totUSD-advance, balanceAED=balanceUSD*rate;
-  return{rate,vrate,rows,netT,vatLines,discount,advance,netAfterDisc,vatT,totUSD,totAED,balanceUSD,balanceAED,cif,freight,insurance,cifUSD,cifAED};
+  return{rate,vrate,vlabel,vatNoAmt,rows,netT,vatLines,discount,advance,netAfterDisc,vatT,totUSD,totAED,balanceUSD,balanceAED,cif,freight,insurance,cifUSD,cifAED};
 }
 
 /* ---------------- render preview ---------------- */
@@ -554,7 +570,7 @@ function render(){
   let body='';let n=0;
   filled.forEach(r=>{n++;
     const sub=[ (r.part&&r.part!=='-')?('Part&nbsp;#&nbsp;'+esc(r.part)):'', (r.hsn&&r.hsn!=='-')?('HSN&nbsp;Code&nbsp;'+esc(r.hsn)):'' ].filter(Boolean).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
-    const lead=`<td class="col-no">${n}</td><td class="l"><div class="li-desc">${esc(r.desc)}</div>${sub?`<div class="li-sub">${sub}</div>`:''}</td><td class="col-qty">${r.qty}</td><td>${fmt(r.price)}</td><td>${fmt(r.net)}</td><td>${dtR.vatLabel||((r.vr||0)+'%')}</td><td>${dtR.vatLabel?'—':fmt(r.vatAmt)}</td><td>${fmt(r.tUSD)}</td>`;
+    const lead=`<td class="col-no">${n}</td><td class="l"><div class="li-desc">${esc(r.desc)}</div>${sub?`<div class="li-sub">${sub}</div>`:''}</td><td class="col-qty">${r.qty}</td><td>${fmt(r.price)}</td><td>${fmt(r.net)}</td><td>${c.vlabel}</td><td>${c.vatNoAmt?'—':fmt(r.vatAmt)}</td><td>${fmt(r.tUSD)}</td>`;
     body+= aed ? `<tr>${lead}</tr>` : `<tr>${lead}<td>${fmt(r.tAED)}</td></tr>`;
   });
   const cols=aed?8:9;
@@ -755,11 +771,13 @@ function bind(){
     billName:'billName',billAddr:'billAddr',delName:'delName',delAddr:'delAddr'};
   Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>{inv[key]=el.value;recompute()})});
   ['terms','rate','remit'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',()=>{inv[id]=el.value;recompute()})});
+  const vs=document.getElementById('vatSel');if(vs)vs.addEventListener('change',()=>{inv.vat=vs.value;recompute()});
 }
 function syncForm(){
   inv.terms=document.getElementById('terms').value=inv.terms;
   ['docTitle','docNumber','dateInvoice','dateSupply','ourRef','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','rate','decl','remit','freight','insurance','discount','advance','remarks'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=inv[id]});
   document.getElementById('terms').value=inv.terms;
+  const vs2=document.getElementById('vatSel');if(vs2&&inv.vat!=null)vs2.value=inv.vat;
 }
 function recompute(){
   ['terms','rate','remit','freight','insurance','discount','advance','remarks','docNumber','docTitle','project','custId','attention','poNumber','billName','billAddr','delName','delAddr','dateInvoice','dateSupply'].forEach(id=>{const el=document.getElementById(id);if(el&&id in inv)inv[id]=el.value});
@@ -992,6 +1010,7 @@ function pickDeal(){
 /* ---------- mode ---------- */
 function setMode(m){
   if(!CONFIG.docTypes[m])m='proforma';
+  const prevMode=inv.mode;
   // save the current document's number into the set before switching
   if(inv.mode){if(!inv.numbers)inv.numbers={};inv.numbers[inv.mode]=inv.docNumber||'';}
   const dt=CONFIG.docTypes[m];
@@ -1009,8 +1028,10 @@ function setMode(m){
   else{logBtn.textContent='Attach to Bigin';logBtn.disabled=false;logBtn.style.opacity='';}
   const lb2=document.getElementById('logBtn2');
   if(lb2)lb2.textContent=dt.logStage?('Log to Bigin → '+dt.logStage.stage):'Attach to Bigin';
-  const vn=document.getElementById('vatNote');
-  if(vn)vn.value=dt.pricing?((dt.vatRate||0)+'%'+(dt.vatRate?' (domestic)':' (zero-rated export)')):'n/a — no pricing';
+  // VAT: default to the type's natural rate when switching types or when unset; preserve a saved/explicit choice on load.
+  if(inv.vat==null || (prevMode && prevMode!==m)) inv.vat=defVat(m);
+  const vs=document.getElementById('vatSel');
+  if(vs){ vs.value=inv.vat; vs.disabled=!dt.pricing; }
   const cw=document.getElementById('cifWrap');if(cw)cw.style.display=dt.cif?'':'none';
   document.querySelectorAll('[data-pricing]').forEach(el=>{el.style.display=dt.pricing?'':'none'});
   renderSetTabs();
