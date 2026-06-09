@@ -420,10 +420,11 @@ const CONFIG={
     bankName:"First Abu Dhabi Bank (FAB)",
     branch:"Sheikh Zayed Rd, Dubai, UAE",
     aedAc:"1031 3219 3166 4010", usdAc:"1031 0019 3166 4024",
-    aedIban:"AE860330000019100017280", usdIban:"AE850351031001931664024", swift:"NBADAEAA"
+    aedIban:"AE310351031321931664010", usdIban:"AE850351031001931664024", swift:"NBADAEAA"
   },
   fx:{ default:3.6725, label:"Central Bank Rate used for USD to AED conversion" },
   declarations:{
+    proforma:"The supplies mentioned in the invoice are out of scope as the place of supply of such goods/services is outside the UAE.",
     exportServices:"The services in this Invoice are meant for export as the place of supply of such services is outside the UAE, and are zero-rated for VAT under UAE Federal Decree-Law No. 8 of 2017.",
     exportGoods:"The goods in this Invoice are for export outside the UAE and are zero-rated for VAT under UAE Federal Decree-Law No. 8 of 2017.",
     domestic:"VAT charged at the standard rate of 5% as per UAE Federal Decree-Law No. 8 of 2017 on Value Added Tax."
@@ -458,7 +459,7 @@ const CONFIG={
      logStage = where the linked Bigin deal moves when this doc is logged (null = no move). */
   docTypes:{
     quotation:    { label:"Quotation",            title:"QUOTATION",                numLabel:"Quotation #",     footWord:"quotation",            dateLabel:"Date",            showSupply:false, pricing:true,  vatRate:0, decl:null,             cif:false, signoff:false, noNumber:true, logStage:{pipeline:"Quotations",stage:"Submit Quotation"} },
-    proforma:     { label:"Proforma",             title:"PROFORMA INVOICE",         numLabel:"Proforma #",      footWord:"proforma",             dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, decl:"exportServices", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
+    proforma:     { label:"Proforma",             title:"PROFORMA INVOICE",         numLabel:"Proforma #",      footWord:"proforma",             dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, vatLabel:"OOS", decl:"proforma", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
     domestic:     { label:"Domestic Tax Invoice", title:"TAX INVOICE",              numLabel:"Invoice #",       footWord:"tax invoice",          dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:5, decl:"domestic",       cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
     exportgoods:  { label:"Export Invoice — Goods",title:"EXPORT INVOICE",          numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, decl:"exportGoods",    cif:true,  signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
     exportservices:{label:"Export Invoice — Services",title:"EXPORT INVOICE",       numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, decl:"exportServices", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
@@ -553,7 +554,7 @@ function render(){
   let body='';let n=0;
   filled.forEach(r=>{n++;
     const sub=[ (r.part&&r.part!=='-')?('Part&nbsp;#&nbsp;'+esc(r.part)):'', (r.hsn&&r.hsn!=='-')?('HSN&nbsp;Code&nbsp;'+esc(r.hsn)):'' ].filter(Boolean).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
-    const lead=`<td class="col-no">${n}</td><td class="l"><div class="li-desc">${esc(r.desc)}</div>${sub?`<div class="li-sub">${sub}</div>`:''}</td><td class="col-qty">${r.qty}</td><td>${fmt(r.price)}</td><td>${fmt(r.net)}</td><td>${r.vr||0}%</td><td>${fmt(r.vatAmt)}</td><td>${fmt(r.tUSD)}</td>`;
+    const lead=`<td class="col-no">${n}</td><td class="l"><div class="li-desc">${esc(r.desc)}</div>${sub?`<div class="li-sub">${sub}</div>`:''}</td><td class="col-qty">${r.qty}</td><td>${fmt(r.price)}</td><td>${fmt(r.net)}</td><td>${dtR.vatLabel||((r.vr||0)+'%')}</td><td>${dtR.vatLabel?'—':fmt(r.vatAmt)}</td><td>${fmt(r.tUSD)}</td>`;
     body+= aed ? `<tr>${lead}</tr>` : `<tr>${lead}<td>${fmt(r.tAED)}</td></tr>`;
   });
   const cols=aed?8:9;
