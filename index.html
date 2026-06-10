@@ -6,11 +6,16 @@
 <title>4POWER · Invoice Generator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&family=Raleway:wght@300;500;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0B1C3E">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <style>
 :root{
   --navy:#0B1C3E; --navy-mid:#1E2B45; --lime:#A3E635; --teal:#0FB39A;
-  --blue:#1478DC; --blue-h:#0F62BB; --emerald:#10B981;
+  --blue:#1F4FB8; --blue-h:#163C8F; --emerald:#0E7C5C;
   --s1:#F5F4F0; --s2:#EDECE7; --s3:#E2E0D8; --white:#fff;
   --tx:#0B1C3E; --tx2:#4A5568; --mut:#8A93A2; --bd:#D8D6CE; --bds:#E8E6DF;
   --r:8px; --disp:'Raleway',sans-serif; --body:'Manrope',sans-serif; --inv:'Poppins',sans-serif;
@@ -23,7 +28,7 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
   background:var(--navy);color:#fff;padding:12px 22px;box-shadow:0 1px 0 rgba(0,0,0,.2)}
 .topbar .brand{display:flex;align-items:center;gap:12px}
 .topbar .brand svg{height:30px;width:auto;display:block}
-.topbar .ttl{font-family:var(--disp);font-weight:300;font-size:15px;letter-spacing:.02em;opacity:.85}
+.topbar .ttl{font-family:var(--body);font-weight:500;font-size:15px;letter-spacing:.01em;opacity:.9}
 .topbar .ttl b{font-weight:800}
 .modewrap{margin-left:8px;display:inline-flex;background:rgba(255,255,255,.08);border-radius:30px;padding:3px}
 .modewrap select{border:0;background:transparent;color:#fff;padding:7px 14px;border-radius:30px;
@@ -47,11 +52,19 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .settabs .addrel{background:#fff;color:var(--navy);border:1px dashed var(--mut);
   border-radius:8px;padding:6px 9px;font-size:11.5px;cursor:pointer;outline:none;white-space:nowrap}
 .settabs .addrel option{color:var(--navy)}
-.acts{margin-left:auto;display:flex;gap:9px}
+.acts{margin-left:auto;display:flex;gap:9px;align-items:center}
 .btn{border:0;border-radius:var(--r);padding:9px 15px;font-weight:600;font-size:13px;cursor:pointer;transition:.15s;white-space:nowrap}
 .btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:var(--blue-h)}
 .btn-g{background:var(--emerald);color:#fff}.btn-g:hover{filter:brightness(.94)}
 .btn-s{background:transparent;color:#dfe6f2;border:1.5px solid rgba(255,255,255,.28)}.btn-s:hover{border-color:#fff}
+.acts .sep{width:1px;height:22px;background:rgba(255,255,255,.18);align-self:center}
+.btn-icon{padding:9px 12px;font-size:17px;line-height:1;letter-spacing:.04em}
+.morewrap{position:relative;display:inline-flex}
+.menu{position:absolute;top:calc(100% + 8px);right:0;min-width:196px;background:#fff;border:1px solid var(--bd);border-radius:10px;box-shadow:0 12px 32px rgba(11,28,62,.20);padding:6px;display:none;z-index:60}
+.menu.open{display:block}
+.menu .mi{display:block;width:100%;text-align:left;background:none;border:0;border-radius:7px;padding:9px 11px;font-family:var(--body);font-weight:600;font-size:12.5px;color:var(--navy);cursor:pointer;white-space:nowrap}
+.menu .mi:hover{background:var(--s1)}
+.menu .mi-sep{height:1px;background:var(--bd);margin:5px 6px}
 
 .layout{display:grid;grid-template-columns:430px 1fr;gap:0;flex:1 1 auto;min-height:0}
 .controls{overflow-y:auto;padding:22px 22px 80px;background:var(--s1);border-right:1px solid var(--bd)}
@@ -59,7 +72,8 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .wtab{flex:1;border:0;background:var(--s2);color:var(--mut);border-radius:8px;padding:9px 4px;font-weight:600;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
 .wtab span{display:inline-flex;width:18px;height:18px;border-radius:50%;background:#fff;color:var(--mut);align-items:center;justify-content:center;font-size:10px}
 .wtab.on{background:var(--navy);color:#fff}.wtab.on span{background:var(--lime);color:var(--navy)}
-.wtab.done span{background:var(--emerald);color:#fff}
+.wtab.done span{background:var(--emerald);color:#fff;font-size:0}
+.wtab.done span::after{content:'✓';font-size:11px;font-weight:700;line-height:1}
 .wstep{display:none}.wstep.on{display:block}
 .wnav{display:flex;justify-content:space-between;gap:10px;margin-top:22px;padding-top:14px;border-top:1px solid var(--bd)}
 .rvok{background:#D1F5EB;color:#059669;padding:13px 15px;border-radius:8px;font-weight:600;font-size:13px}
@@ -309,10 +323,22 @@ table.lines tbody tr.blank td{height:26px}
   </div>
   <div class="acts">
     <button class="btn btn-s" onclick="newDoc()">New</button>
-    <button class="btn btn-g" id="logBtn" onclick="logToBigin(this)">Log to Bigin</button>
+    <span class="sep"></span>
     <button class="btn btn-s" onclick="window.print()">Print</button>
     <button class="btn btn-s" onclick="downloadServerPdf(this)">Download PDF</button>
-    <button class="btn btn-p" onclick="saveToRepository(this)">Save to repository</button>
+    <span class="sep"></span>
+    <button class="btn btn-p" id="issueBtn" onclick="issueDocument(this)">Issue document</button>
+    <div class="morewrap">
+      <button class="btn btn-s btn-icon" id="moreBtn" onclick="toggleMore(event)" aria-label="More actions" aria-haspopup="true" aria-expanded="false">&#8943;</button>
+      <div class="menu" id="moreMenu" role="menu">
+        <button class="mi" id="logBtn" role="menuitem" onclick="closeMore();logToBigin(this)">Log to Bigin</button>
+        <button class="mi" role="menuitem" onclick="closeMore();saveToRepository(this)">Save to repository</button>
+        <div class="mi-sep"></div>
+        <button class="mi" role="menuitem" onclick="closeMore();saveJSON()">Save draft</button>
+        <button class="mi" role="menuitem" onclick="closeMore();document.getElementById('loadf').click()">Open draft</button>
+      </div>
+    </div>
+    <input id="loadf" type="file" accept="application/json" style="display:none" onchange="loadJSON(event)">
   </div>
 </div>
 
@@ -1223,7 +1249,7 @@ function setMode(m){
   else{logBtn.textContent='Attach to Bigin';logBtn.disabled=false;logBtn.style.opacity='';}
   const lb2=document.getElementById('logBtn2');
   if(lb2)lb2.textContent=dt.logStage?('Log to Bigin → '+dt.logStage.stage):'Attach to Bigin';
-  const ib2=document.getElementById('issueBtn2'); if(ib2)ib2.textContent='Issue document'; _issue=null;
+  ['issueBtn','issueBtn2'].forEach(function(id){var b=document.getElementById(id);if(b)b.textContent='Issue document';}); _issue=null;
   // VAT: default to the type's natural rate when switching types or when unset; preserve a saved/explicit choice on load.
   if(inv.vat==null || (prevMode && prevMode!==m)) inv.vat=defVat(m);
   const vs=document.getElementById('vatSel');
@@ -1305,7 +1331,7 @@ let curStep=1;
 function goStep(n){
   n=Math.max(1,Math.min(4,n));curStep=n;
   document.querySelectorAll('.wstep').forEach(s=>s.classList.toggle('on',+s.dataset.step===n));
-  document.querySelectorAll('.wtab').forEach(t=>{const s=+t.dataset.s;t.classList.toggle('on',s===n);t.classList.toggle('done',s<n)});
+  document.querySelectorAll('.wtab').forEach(t=>{const s=+t.dataset.s;t.classList.toggle('on',s===n);t.classList.toggle('done',s<n);if(s===n)t.setAttribute('aria-current','step');else t.removeAttribute('aria-current')});
   const back=document.getElementById('wback'),next=document.getElementById('wnext');
   if(back)back.style.visibility=n===1?'hidden':'';
   if(next)next.style.visibility=n===4?'hidden':'';
@@ -1664,6 +1690,10 @@ async function issueDocument(srcBtn){
   set('Retry issue');
   alert('Issued with problems.\n\n'+(done.length?('Done:\n- '+done.join('\n- ')+'\n\n'):'')+'Failed:\n- '+fail.join('\n- ')+'\n\nPress “Retry issue” to re-run only the part that failed.');
 }
+/* ---- overflow menu ---- */
+function toggleMore(e){if(e)e.stopPropagation();const m=document.getElementById("moreMenu"),b=document.getElementById("moreBtn");if(!m)return;const open=m.classList.toggle("open");if(b)b.setAttribute("aria-expanded",open?"true":"false");}
+function closeMore(){const m=document.getElementById("moreMenu"),b=document.getElementById("moreBtn");if(m)m.classList.remove("open");if(b)b.setAttribute("aria-expanded","false");}
+document.addEventListener("click",function(e){if(!e.target.closest(".morewrap"))closeMore();});
 getMsal().catch(function(){}); // pre-warm sign-in so the popup opens instantly on the first click
 init();
 </script>
