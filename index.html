@@ -312,7 +312,7 @@ table.lines tbody tr.blank td{height:26px}
     <button class="btn btn-s" onclick="saveJSON()">Save .json</button>
     <button class="btn btn-s" onclick="document.getElementById('loadf').click()">Load .json</button>
     <input id="loadf" type="file" accept="application/json" style="display:none" onchange="loadJSON(event)">
-    <button class="btn btn-g" id="logBtn" onclick="logToBigin()">Log to Bigin</button>
+    <button class="btn btn-g" id="logBtn" onclick="logToBigin(this)">Log to Bigin</button>
     <button class="btn btn-s" onclick="window.print()">Print</button>
     <button class="btn btn-s" onclick="downloadServerPdf(this)">Download PDF</button>
     <button class="btn btn-p" onclick="saveToRepository(this)">Save to repository</button>
@@ -461,7 +461,7 @@ table.lines tbody tr.blank td{height:26px}
     <div class="eyebrow">Review &amp; issue</div>
     <div id="reviewBox"></div>
     <div class="row2" style="margin-top:14px">
-      <button class="btn btn-g" id="logBtn2" onclick="logToBigin()">Log to Bigin</button>
+      <button class="btn btn-g" id="logBtn2" onclick="logToBigin(this)">Log to Bigin</button>
       <button class="btn btn-s" onclick="window.print()">Print</button>
       <button class="btn btn-s" onclick="downloadServerPdf(this)">Download PDF</button>
       <button class="btn btn-p" onclick="saveToRepository(this)">Save to repository</button>
@@ -1378,7 +1378,26 @@ async function createBiginDeal(){
     alert('Could not reach the Bigin bridge.\n\n'+(e&&e.message?e.message:''));
   }
 }
-async function logToBigin(){
+/* ---- Bigin attachment (POST PDF to the bridge -> Pipelines/{dealId}/Attachments) ---- */
+const ATTACH_ENDPOINT='https://launch4power.app.n8n.cloud/webhook/bigin-attach';
+function blobToBase64(blob){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onerror=()=>reject(new Error('Could not read the PDF for upload.'));
+    r.onload=()=>{const s=String(r.result||'');const i=s.indexOf('base64,');resolve(i>=0?s.slice(i+7):s);};
+    r.readAsDataURL(blob);
+  });
+}
+async function attachToBigin(dealId,blob,fileName){
+  if(!dealId) throw new Error('No Bigin deal is linked.');
+  const pdfBase64=await blobToBase64(blob);
+  const r=await fetch(ATTACH_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dealId,fileName,pdfBase64})});
+  if(!r.ok){const t=await r.text().catch(()=>'');throw new Error('Attach failed ('+r.status+') '+t.slice(0,180));}
+  const j=await r.json().catch(()=>null);
+  if(!j||!j.ok) throw new Error('Bigin did not confirm the attachment'+(j&&j.message?(': '+j.message):'.'));
+  return j;
+}
+async function logToBigin(srcBtn){
   if(!activeDealId){
     alert('Link a Bigin deal first.\n\nSearch the customer, pick a live result, then choose the deal under “Link a Bigin deal”. The selected deal is the record that will be moved.');
     return;
@@ -1390,7 +1409,24 @@ async function logToBigin(){
   }
   const target=(CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma).logStage;
   if(!target){
-    alert('This document type doesn’t move a deal stage.\n\nAttaching the PDF to the Bigin record will be enabled with the document renderer.');
+    // Attach-only types (Packing Slip / Delivery Note / Installation Report): file the PDF onto the linked deal, no stage move.
+    const p=docRefParts();
+    if(!p.ok){alert('This '+((CONFIG.docTypes[inv.mode]||{}).label||'document')+' needs its '+p.need+' before it can be named and attached.\n\nAdd the '+p.need+' and try again.');return;}
+    const dn=(activeDeal&&activeDeal.name)||'this deal';
+    const fname=pdfFilename();
+    if(!confirm('Attach this '+((CONFIG.docTypes[inv.mode]||{}).label||'document')+' to the Bigin deal\n\n“'+dn+'”\n\n'+fname+'\n\nProceed?'))return;
+    const ab=srcBtn||document.getElementById('logBtn2')||document.getElementById('logBtn');const al=ab?ab.textContent:'';
+    if(ab){ab.disabled=true;ab.textContent='Rendering…';}
+    try{
+      const out=await renderPdfBlob();
+      if(ab)ab.textContent='Attaching…';
+      await attachToBigin(activeDealId,out.blob,out.fname);
+      if(ab){ab.textContent='Attached ✓';setTimeout(()=>{ab.disabled=false;ab.textContent=al;},2500);}
+      alert('Attached to Bigin ✓\n\n“'+dn+'”\n'+out.fname);
+    }catch(e){
+      if(ab){ab.disabled=false;ab.textContent=al;}
+      alert('Could not attach to Bigin.\n\n'+(e&&e.message?e.message:String(e)));
+    }
     return;
   }
   const dn=(activeDeal&&activeDeal.name)||'this deal';
