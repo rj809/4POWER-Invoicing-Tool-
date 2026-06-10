@@ -312,7 +312,8 @@ table.lines tbody tr.blank td{height:26px}
     <button class="btn btn-s" onclick="document.getElementById('loadf').click()">Load .json</button>
     <input id="loadf" type="file" accept="application/json" style="display:none" onchange="loadJSON(event)">
     <button class="btn btn-g" id="logBtn" onclick="logToBigin()">Log to Bigin</button>
-    <button class="btn btn-p" onclick="window.print()">Print / Save PDF</button>
+    <button class="btn btn-s" onclick="window.print()">Print</button>
+    <button class="btn btn-p" onclick="downloadServerPdf(this)">Download PDF</button>
   </div>
 </div>
 
@@ -459,7 +460,8 @@ table.lines tbody tr.blank td{height:26px}
     <div id="reviewBox"></div>
     <div class="row2" style="margin-top:14px">
       <button class="btn btn-g" id="logBtn2" onclick="logToBigin()">Log to Bigin</button>
-      <button class="btn btn-p" onclick="window.print()">Print / Save PDF</button>
+      <button class="btn btn-s" onclick="window.print()">Print</button>
+      <button class="btn btn-p" onclick="downloadServerPdf(this)">Download PDF</button>
     </div>
     </section>
     <div class="wnav">
@@ -1430,6 +1432,46 @@ function init(){
     const at=arr.indexOf(i);if(at>=0)arr.splice(at,1);else arr.push(i);
     persist();render();});
   sheetEl.addEventListener('focusout',e=>{const el=e.target.closest&&e.target.closest('.ed');if(el&&el.getAttribute('data-field')==='terms')recompute();});
+}
+
+/* ---------------- server-side PDF (Download PDF) ---------------- */
+const RENDER_ENDPOINT='/.netlify/functions/render-pdf';
+function pdfFilename(){
+  const dt=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
+  const t=(dt.label||'Document').replace(/[—–]/g,'-');
+  const num=(inv.docNumber||'NO-REF').trim();
+  const who=(inv.billName||'Customer').trim();
+  const d=inv.dateInvoice||new Date().toISOString().slice(0,10);
+  return (t+' · '+num+' · '+who+' · '+d+'.pdf').replace(/[\/\\:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
+}
+function buildDocHtml(){
+  // Frozen, self-contained snapshot of the current document for server rendering.
+  const base='<base href="'+location.origin+'/">';
+  let h='<!doctype html>\n'+document.documentElement.outerHTML;
+  h=h.replace(/<head([^>]*)>/i,'<head$1>'+base);
+  // Strip scripts so the server renders this exact DOM (re-running them would reset the document).
+  h=h.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');
+  return h;
+}
+async function downloadServerPdf(btn){
+  const dt=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
+  const headerRef=((dt.title||dt.label||'')+' · '+(inv.docNumber||'')).replace(/ · $/,'').trim();
+  const fname=pdfFilename();
+  const html=buildDocHtml();
+  const old=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='Rendering…';}
+  try{
+    const r=await fetch(RENDER_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({html,filename:fname,headerRef})});
+    if(!r.ok){const t=await r.text().catch(()=>'');throw new Error('Render failed ('+r.status+') '+t.slice(0,180));}
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=fname;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }catch(e){
+    alert('Could not generate the PDF.\n\n'+(e&&e.message?e.message:e)+'\n\nThe Print button (Save as PDF) still works as a fallback.');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=old;}
+  }
 }
 init();
 </script>
