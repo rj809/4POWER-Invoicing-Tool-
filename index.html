@@ -460,11 +460,13 @@ table.lines tbody tr.blank td{height:26px}
     <section class="wstep" data-step="4">
     <div class="eyebrow">Review &amp; issue</div>
     <div id="reviewBox"></div>
-    <div class="row2" style="margin-top:14px">
-      <button class="btn btn-g" id="logBtn2" onclick="logToBigin(this)">Log to Bigin</button>
-      <button class="btn btn-s" onclick="window.print()">Print</button>
-      <button class="btn btn-s" onclick="downloadServerPdf(this)">Download PDF</button>
-      <button class="btn btn-p" onclick="saveToRepository(this)">Save to repository</button>
+    <div style="margin-top:14px">
+      <button class="btn btn-p" id="issueBtn2" onclick="issueDocument(this)" style="width:100%">Issue document</button>
+      <div style="font-size:11px;color:var(--mut);text-align:center;margin:7px 0 11px">Files to the repository and updates Bigin in one step</div>
+      <div class="row2">
+        <button class="btn btn-s" onclick="window.print()">Print</button>
+        <button class="btn btn-s" onclick="downloadServerPdf(this)">Download PDF</button>
+      </div>
     </div>
     </section>
     <div class="wnav">
@@ -1224,6 +1226,7 @@ function setMode(m){
   else{logBtn.textContent='Attach to Bigin';logBtn.disabled=false;logBtn.style.opacity='';}
   const lb2=document.getElementById('logBtn2');
   if(lb2)lb2.textContent=dt.logStage?('Log to Bigin → '+dt.logStage.stage):'Attach to Bigin';
+  const ib2=document.getElementById('issueBtn2'); if(ib2)ib2.textContent='Issue document'; _issue=null;
   // VAT: default to the type's natural rate when switching types or when unset; preserve a saved/explicit choice on load.
   if(inv.vat==null || (prevMode && prevMode!==m)) inv.vat=defVat(m);
   const vs=document.getElementById('vatSel');
@@ -1595,6 +1598,74 @@ async function saveToRepository(btn){
   }finally{
     if(btn){btn.disabled=false;btn.textContent=old||'Save to repository';}
   }
+}
+/* ---------------- Issue document (unified: sign-in -> render -> SharePoint + Bigin; retry re-runs only the failed half) ---------------- */
+let _issue=null;
+async function issueDocument(srcBtn){
+  const dt=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
+  const p=docRefParts();
+  if(!p.ok){alert('This '+(dt.label||'document')+' needs its '+p.need+' before it can be issued.\n\nAdd the '+p.need+' and try again.');return;}
+  const folder=SP_FOLDER[inv.mode];
+  if(!folder){alert('No repository folder is mapped for a '+(dt.label||'document')+'.');return;}
+  if(!activeDealId){alert('Link a Bigin deal first.\n\nSearch the customer, pick a live result, then create or link the deal under the Customer step.');return;}
+  const issues=validate();
+  if(issues.length){alert('Resolve these before issuing:\n\n- '+issues.join('\n- '));return;}
+
+  const fname=pdfFilename();
+  const target=dt.logStage;                 // null for PL/DN/IR (attach only, no stage move)
+  const dn=(activeDeal&&activeDeal.name)||'this deal';
+  const destLine='Issued Documents / '+p.yr+' / '+(SP_FOLDER_NAME[inv.mode]||'');
+
+  if(_issue&&_issue.fname!==fname)_issue=null;   // document changed since last attempt -> fresh issue
+  const fresh=!_issue;
+  if(fresh){
+    _issue={spDone:false,biginDone:false,fname:fname};
+    const biginLine=target?('Bigin - move “'+dn+'” to '+target.pipeline+' : '+target.stage+', then attach the PDF'):('Bigin - attach the PDF to “'+dn+'”');
+    if(!confirm('Issue this '+(dt.label||'document')+'?\n\n'+fname+'\n\nRepository - '+destLine+'\n'+biginLine+'\n\nProceed?')){_issue=null;return;}
+  }
+  const needSP=!_issue.spDone, needBigin=!_issue.biginDone;
+
+  const btn=srcBtn||document.getElementById('issueBtn2');
+  const set=t=>{if(btn)btn.textContent=t;};
+  if(btn)btn.disabled=true;
+  let spErr=null,biginErr=null;
+  try{
+    let token=null;
+    if(needSP){ set('Signing in…'); token=await graphToken(); }   // sign-in first so the popup keeps the click gesture
+    set('Rendering…'); const out=await renderPdfBlob();
+    if(needSP){
+      set('Filing…');
+      try{ await graphUpload(out.blob,out.fname,folder,token); _issue.spDone=true; }
+      catch(e){ spErr=e; }
+    }
+    if(needBigin){
+      set('Updating Bigin…');
+      try{
+        if(target){
+          const mv=await bridge({action:'move_deal',id:activeDealId,pipeline:target.pipeline,stage:target.stage});
+          if(!(mv&&mv.ok)) throw new Error((mv&&mv.message)||'Bigin did not confirm the stage move.');
+          if(activeDeal){activeDeal.pipeline=target.pipeline;activeDeal.stage=target.stage;}
+        }
+        await attachToBigin(activeDealId,out.blob,out.fname);
+        _issue.biginDone=true;
+      }catch(e){ biginErr=e; }
+    }
+  }catch(e){
+    if(needSP&&!_issue.spDone&&!spErr)spErr=e; else if(!biginErr)biginErr=e;
+  }finally{
+    if(btn)btn.disabled=false;
+  }
+
+  if(_issue.spDone&&_issue.biginDone){
+    _issue=null;
+    set('Issued ✓'); if(btn)setTimeout(()=>{set('Issue document');},3000);
+    alert('Issued ✓\n\n'+fname+'\n\n- Filed to '+destLine+'\n- Bigin '+(target?('moved to '+target.stage+' + attached'):'attached'));
+    return;
+  }
+  const done=[]; if(_issue.spDone)done.push('Repository filed ✓'); if(_issue.biginDone)done.push('Bigin updated ✓');
+  const fail=[]; if(!_issue.spDone)fail.push('Repository - '+((spErr&&spErr.message)?spErr.message:'failed')); if(!_issue.biginDone)fail.push('Bigin - '+((biginErr&&biginErr.message)?biginErr.message:'failed'));
+  set('Retry issue');
+  alert('Issued with problems.\n\n'+(done.length?('Done:\n- '+done.join('\n- ')+'\n\n'):'')+'Failed:\n- '+fail.join('\n- ')+'\n\nPress “Retry issue” to re-run only the part that failed.');
 }
 getMsal().catch(function(){}); // pre-warm sign-in so the popup opens instantly on the first click
 init();
