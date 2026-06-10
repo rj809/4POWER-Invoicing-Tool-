@@ -160,6 +160,8 @@ details.cat[open] summary::before{content:'▾ '}
 .pk-count{font-size:12px;color:var(--tx2)}
 .pk-count b{color:var(--navy)}
 .pk-empty{padding:28px;text-align:center;color:var(--mut);font-size:13px}
+.pk-custom{margin:8px;padding:9px 11px;border:1px dashed var(--blue);border-radius:9px;color:var(--blue);font-weight:600;font-size:12.5px;cursor:pointer;background:#fff}
+.pk-custom:hover{background:var(--s1)}
 
 /* ---------- INVOICE SHEET (print target) ---------- */
 .sheet{width:794px;min-height:1123px;background:#fff;box-shadow:0 6px 30px rgba(11,28,62,.12);position:relative;
@@ -928,7 +930,7 @@ function renderItems(){
       <div class="grid">
         <div class="fld"><label class="lbl">Part #</label><input value="${esc(it.part)}" oninput="setItem(${i},'part',this.value)"></div>
         <div class="fld"><label class="lbl">HSN Code</label><input value="${esc(it.hsn)}" oninput="setItem(${i},'hsn',this.value)"></div>
-        <div class="fld full"><label class="lbl">Description</label><input value="${esc(it.desc)}" oninput="setItem(${i},'desc',this.value)"></div>
+        <div class="fld full"><label class="lbl">Description</label><input value="${esc(it.desc)}" placeholder="Click to choose from catalogue, or type" oninput="setItem(${i},'desc',this.value)" onclick="if(!this.value.trim())openPicker()"></div>
         <div class="fld"><label class="lbl">Qty</label><input type="number" min="0" value="${it.qty}" oninput="setItem(${i},'qty',this.value)"></div>
         <div class="fld"><label class="lbl">Unit Price (USD)</label><input type="number" min="0" step="0.01" value="${it.price}" oninput="setItem(${i},'price',this.value)"></div>
         <div class="fld"><label class="lbl">Serial No. <span style="color:var(--mut);font-weight:400">(install)</span></label><input value="${esc(it.serial||'')}" oninput="setItem(${i},'serial',this.value)"></div>
@@ -995,7 +997,14 @@ function renderPicker(filter){
     other.forEach(o=>html+=pkRow(o.c,o.i,false));
     html+='</div>';
   });
-  document.getElementById('pkBody').innerHTML=any?html:`<div class="pk-empty">No products match.</div>`;
+  const customBlock=f?`<div class="pk-custom" onclick="pickerCustom()">Use “${esc((filter||'').trim())}” as a custom line</div>`:'';
+  document.getElementById('pkBody').innerHTML=customBlock+(any?html:`<div class="pk-empty">No catalogue products match.</div>`);
+}
+function pickerCustom(){
+  const t=(document.getElementById('pkSearch').value||'').trim();if(!t)return;
+  const row={part:'',desc:t,hsn:'',qty:1,price:0,serial:'',fam:'',tag:'',role:''};
+  const b=pkFirstBlank();if(b>=0)inv.items[b]=row;else inv.items.push(row);
+  renderItems();render();persist();closePicker();
 }
 
 /* ---------- catalogue UI ---------- */
