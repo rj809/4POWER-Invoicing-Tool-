@@ -499,15 +499,18 @@ function blank(mode){
 function load(k,d){try{const v=localStorage.getItem('4p_inv_'+k);return v?JSON.parse(v):d}catch(e){return d}}
 function save(k,v){try{localStorage.setItem('4p_inv_'+k,JSON.stringify(v))}catch(e){}}
 
-/* ---------- cloud catalogue (n8n) ---------- */
-const CLOUD_URL='https://launch4power.app.n8n.cloud/webhook/4p-catalogue';
+/* ---------- cloud catalogue (Supabase) ---------- */
+const SUPA_URL='https://csiqisasxyenwuiryjpi.supabase.co/rest/v1/app_config';
+const SUPA_KEY='sb_publishable_83zo00jrjYO3E3LNSSHrig_qlllbYkb';
+const CAT_ADMIN_KEY='4POW-cat-Kx92-2026';
+function supaHeaders(extra){return Object.assign({'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},extra||{});}
 function cloudMap(arr){return (arr||[]).map(r=>({part:(r.part||'').toString(),desc:(r.desc!=null?r.desc:(r.description||'')).toString(),hsn:(r.hsn||'').toString(),price:parseFloat(r.price)||0})).filter(r=>r.part||r.desc);}
 async function fetchCloudCatalogue(){
   try{
-    const res=await fetch(CLOUD_URL,{method:'GET',cache:'no-store'});
+    const res=await fetch(SUPA_URL+'?key=eq.catalogue&select=data',{headers:supaHeaders(),cache:'no-store'});
     if(!res.ok)return;
-    const data=await res.json();
-    const arr=Array.isArray(data)?data:(data&&Array.isArray(data.catalogue)?data.catalogue:null);
+    const rows=await res.json();
+    const arr=(Array.isArray(rows)&&rows[0]&&Array.isArray(rows[0].data))?rows[0].data:null;
     if(!arr||!arr.length)return;            // empty/odd response: keep cached/default
     catalogue=cloudMap(arr);
     save('cat',catalogue);                  // refresh local cache for offline use
@@ -519,18 +522,15 @@ function getAdminKey(){let k=load('adminkey','');if(!k){k=(prompt('Enter the cat
 async function saveCloudCatalogue(){
   const key=getAdminKey();
   if(!key){alert('Save cancelled — no admin key entered.');return;}
+  if(key!==CAT_ADMIN_KEY){try{localStorage.removeItem('4p_inv_adminkey')}catch(e){}alert('Incorrect admin key — nothing saved. Try again with the correct key.');return;}
   const btn=document.getElementById('cloudSaveBtn');
   if(btn){btn.disabled=true;btn.textContent='Saving…';}
   try{
-    const payload={adminKey:key,catalogue:catalogue.map((c,i)=>({part:c.part,desc:c.desc,hsn:c.hsn,price:c.price,sort_order:i+1}))};
-    const res=await fetch(CLOUD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    const out=await res.json().catch(()=>({}));
-    if(res.ok){alert('Catalogue saved to cloud ('+(out.count!=null?out.count:catalogue.length)+' products). Colleagues get it on their next load.');}
-    else{
-      if(res.status===401){try{localStorage.removeItem('4p_inv_adminkey')}catch(e){}}
-      alert('Save failed: '+(out.error||('HTTP '+res.status))+(res.status===401?' — admin key cleared, try again with the correct key.':''));
-    }
-  }catch(e){alert('Save failed — could not reach the cloud. Check your connection and that the workflow is Active in n8n.');}
+    const payload={data:catalogue.map(c=>({part:c.part,desc:c.desc,hsn:c.hsn,price:c.price})),updated_at:new Date().toISOString()};
+    const res=await fetch(SUPA_URL+'?key=eq.catalogue',{method:'PATCH',headers:supaHeaders({'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify(payload)});
+    if(res.ok){alert('Catalogue saved to cloud ('+catalogue.length+' products). Colleagues get it on their next load.');}
+    else{const t=await res.text().catch(()=>'');alert('Save failed: HTTP '+res.status+(t?' — '+t.slice(0,200):''));}
+  }catch(e){alert('Save failed — could not reach the cloud. Check your connection.');}
   finally{if(btn){btn.disabled=false;btn.textContent='Save to cloud';}}
 }
 
