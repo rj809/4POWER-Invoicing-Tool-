@@ -117,6 +117,7 @@ details.cat[open] summary::before{content:'▾ '}
 .additm-row .additm{flex:1}
 .additm-blank{flex:0 0 118px;color:var(--tx2)!important;border-style:dashed}
 .it-chip{font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:20px}
+.itrow .top .it-title{flex:1;min-width:0;font-weight:600;font-size:12.5px;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .it-anchor{background:var(--navy);color:#fff}
 .it-service{background:#D6ECFA;color:#1F4FB8}
 .it-option{background:var(--s2);color:var(--tx2)}
@@ -919,12 +920,10 @@ function validate(){
 function renderItems(){
   const wrap=document.getElementById('items');wrap.innerHTML='';
   inv.items.forEach((it,i)=>{
-    const opts=['<option value="-1">— custom / type below —</option>']
-      .concat(catalogue.map((c,ci)=>`<option value="${ci}">${esc(c.part==='-'?'':c.part+' · ')}${esc(c.desc)}</option>`)).join('');
     const div=document.createElement('div');div.className='itrow'+(it.role==='option'?' is-opt':'');
     div.innerHTML=`
       <div class="top"><span class="num">${i+1}</span>${it.role?`<span class="it-chip it-${it.role}">${esc(it.role==='anchor'?(it.tag||'Base'):it.role)}</span>`:''}
-        <select onchange="pickProduct(${i},this.value)">${opts}</select>
+        <span class="it-title">${esc(it.desc||'Untitled line — fill below, or add from catalogue')}</span>
         <button class="rm" onclick="rmItem(${i})" title="Remove">×</button></div>
       <div class="grid">
         <div class="fld"><label class="lbl">Part #</label><input value="${esc(it.part)}" oninput="setItem(${i},'part',this.value)"></div>
