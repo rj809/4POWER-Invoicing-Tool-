@@ -299,6 +299,7 @@ table.lines tbody tr.blank td{height:26px}
   .sheet .ed:empty:before{content:'—';color:#000}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3/lib/msal-browser.min.js"></script>
 </head>
 <body>
 <div class="topbar">
@@ -313,7 +314,8 @@ table.lines tbody tr.blank td{height:26px}
     <input id="loadf" type="file" accept="application/json" style="display:none" onchange="loadJSON(event)">
     <button class="btn btn-g" id="logBtn" onclick="logToBigin()">Log to Bigin</button>
     <button class="btn btn-s" onclick="window.print()">Print</button>
-    <button class="btn btn-p" onclick="downloadServerPdf(this)">Download PDF</button>
+    <button class="btn btn-s" onclick="downloadServerPdf(this)">Download PDF</button>
+    <button class="btn btn-p" onclick="saveToRepository(this)">Save to repository</button>
   </div>
 </div>
 
@@ -461,7 +463,8 @@ table.lines tbody tr.blank td{height:26px}
     <div class="row2" style="margin-top:14px">
       <button class="btn btn-g" id="logBtn2" onclick="logToBigin()">Log to Bigin</button>
       <button class="btn btn-s" onclick="window.print()">Print</button>
-      <button class="btn btn-p" onclick="downloadServerPdf(this)">Download PDF</button>
+      <button class="btn btn-s" onclick="downloadServerPdf(this)">Download PDF</button>
+      <button class="btn btn-p" onclick="saveToRepository(this)">Save to repository</button>
     </div>
     </section>
     <div class="wnav">
@@ -1473,26 +1476,83 @@ function buildDocHtml(){
   h=h.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');
   return h;
 }
+// Render the current document to a PDF blob via the server function (shared by Download + Save).
+async function renderPdfBlob(){
+  const dt=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
+  const headerRef=((dt.title||dt.label||'')+' · '+docRef()).replace(/ · $/,'').trim();
+  const fname=pdfFilename();
+  const html=buildDocHtml();
+  const r=await fetch(RENDER_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({html,filename:fname,headerRef})});
+  if(!r.ok){const t=await r.text().catch(()=>'');throw new Error('Render failed ('+r.status+') '+t.slice(0,180));}
+  return {blob:await r.blob(),fname};
+}
 async function downloadServerPdf(btn){
   const dt=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
   const p=docRefParts();
   if(!p.ok){alert('This '+(dt.label||'document')+' needs its '+p.need+' before it can be named and saved.\n\nAdd the '+p.need+' and try again.');return;}
-  const headerRef=((dt.title||dt.label||'')+' · '+docRef()).replace(/ · $/,'').trim();
-  const fname=pdfFilename();
-  const html=buildDocHtml();
   const old=btn?btn.textContent:'';
   if(btn){btn.disabled=true;btn.textContent='Rendering…';}
   try{
-    const r=await fetch(RENDER_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({html,filename:fname,headerRef})});
-    if(!r.ok){const t=await r.text().catch(()=>'');throw new Error('Render failed ('+r.status+') '+t.slice(0,180));}
-    const blob=await r.blob();
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download=fname;document.body.appendChild(a);a.click();a.remove();
+    const out=await renderPdfBlob();
+    const url=URL.createObjectURL(out.blob);
+    const a=document.createElement('a');a.href=url;a.download=out.fname;document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),5000);
   }catch(e){
     alert('Could not generate the PDF.\n\n'+(e&&e.message?e.message:e)+'\n\nThe Print button (Save as PDF) still works as a fallback.');
   }finally{
     if(btn){btn.disabled=false;btn.textContent=old;}
+  }
+}
+
+/* ---------------- Save to repository (O365 sign-in + SharePoint upload) ---------------- */
+const MSAL_CONFIG={auth:{clientId:'3db760f3-fa99-4d1a-8d7c-16d51911133e',authority:'https://login.microsoftonline.com/bd0765d3-a725-451d-8487-7eb2037f9aeb',redirectUri:location.origin},cache:{cacheLocation:'sessionStorage'}};
+const GRAPH_SCOPES=['Sites.ReadWrite.All'];
+const SP_DRIVE='b!04HU4gxrs0eIHqzFlfYWZzLsdnfS4EZPmTkssG_iANRwMub9ULXgQaPmwtpdueV-';
+// Mode → SharePoint folder itemId (Issued Documents / 2026 / <Type>). Both export types file together.
+const SP_FOLDER={quotation:'01RNPJ2XJXQTO5PW2VSRFISSBNKA4NUZ7O',proforma:'01RNPJ2XLIIOM72JGNLJGI77RVFF23HWCS',domestic:'01RNPJ2XMZMC5O3ML67ZHKYDA2HRUYU7HD',exportgoods:'01RNPJ2XKMKKQNO6AXEJHZ2BT224ZLDZYF',exportservices:'01RNPJ2XKMKKQNO6AXEJHZ2BT224ZLDZYF',packingslip:'01RNPJ2XIWKMFA7RWXOJAKTA6HRBJRQC3Q',deliverynote:'01RNPJ2XN6ZKQ6OHCCSZFZ7NNLYTQSIHVC',installation:'01RNPJ2XK7Q6GIKSAX5JHLWJPZGDBW32T6'};
+const SP_FOLDER_NAME={quotation:'Quotations',proforma:'Proformas',domestic:'Domestic Tax Invoices',exportgoods:'Export Invoices',exportservices:'Export Invoices',packingslip:'Packing Lists',deliverynote:'Delivery Notes',installation:'Installation Reports'};
+let _msal=null;
+async function getMsal(){
+  if(_msal) return _msal;
+  if(!(window.msal&&window.msal.PublicClientApplication)) throw new Error('Microsoft sign-in library has not loaded — check your connection and refresh the page.');
+  _msal=new msal.PublicClientApplication(MSAL_CONFIG);
+  await _msal.initialize();
+  return _msal;
+}
+async function graphToken(){
+  const app=await getMsal();
+  let acct=app.getActiveAccount()||app.getAllAccounts()[0];
+  if(acct) app.setActiveAccount(acct);
+  if(!acct){ const res=await app.loginPopup({scopes:GRAPH_SCOPES}); acct=res.account; app.setActiveAccount(acct); }
+  try{ return (await app.acquireTokenSilent({scopes:GRAPH_SCOPES,account:acct})).accessToken; }
+  catch(_){ return (await app.acquireTokenPopup({scopes:GRAPH_SCOPES,account:acct})).accessToken; }
+}
+async function graphUpload(blob,fname,folder,token){
+  const url='https://graph.microsoft.com/v1.0/drives/'+SP_DRIVE+'/items/'+folder+':/'+encodeURIComponent(fname)+':/content?@microsoft.graph.conflictBehavior=replace';
+  const r=await fetch(url,{method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/pdf'},body:blob});
+  if(!r.ok){const t=await r.text().catch(()=>'');throw new Error('Upload failed ('+r.status+') '+t.slice(0,200));}
+  return r.json();
+}
+async function saveToRepository(btn){
+  const dt=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
+  const p=docRefParts();
+  if(!p.ok){alert('This '+(dt.label||'document')+' needs its '+p.need+' before it can be filed.\n\nAdd the '+p.need+' and try again.');return;}
+  const folder=SP_FOLDER[inv.mode];
+  if(!folder){alert('No repository folder is mapped for a '+(dt.label||'document')+'.');return;}
+  const fname=pdfFilename();
+  if(!confirm('File this '+(dt.label||'document')+' to the repository?\n\n'+fname+'\n→ Issued Documents / '+p.yr+' / '+(SP_FOLDER_NAME[inv.mode]||'')+'\n\nAn existing file of the same name is overwritten; SharePoint keeps the previous copies in version history.')) return;
+  const old=btn?btn.textContent:''; const set=t=>{if(btn)btn.textContent=t;};
+  if(btn) btn.disabled=true;
+  try{
+    set('Rendering…'); const out=await renderPdfBlob();
+    set('Signing in…'); const token=await graphToken();
+    set('Filing…'); const item=await graphUpload(out.blob,out.fname,folder,token);
+    set('Filed ✓');
+    alert('Filed to repository ✓\n\n'+out.fname+(item&&item.webUrl?('\n\n'+item.webUrl):''));
+  }catch(e){
+    alert('Could not file to the repository.\n\n'+(e&&e.message?e.message:String(e)));
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=old||'Save to repository';}
   }
 }
 init();
