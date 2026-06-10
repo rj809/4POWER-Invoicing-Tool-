@@ -1436,13 +1436,33 @@ function init(){
 
 /* ---------------- server-side PDF (Download PDF) ---------------- */
 const RENDER_ENDPOINT='/.netlify/functions/render-pdf';
+// Reference scheme: 4P-<CODE>-<YYYY>-<TAIL>
+//  PI / INV  → 5-digit tail from the document's own number field (Proforma #, Invoice #)
+//  QT/PL/DN/IR → 4-digit tail from Our Reference (Bigin 4POWxxxx)
+const REF_CODE={quotation:'QT',proforma:'PI',domestic:'INV',exportgoods:'INV',exportservices:'INV',packingslip:'PL',deliverynote:'DN',installation:'IR'};
+const REF_FIVE=['proforma','domestic','exportgoods','exportservices']; // five-digit, off own number field
+function docRefParts(){
+  const mode=inv.mode;
+  const code=REF_CODE[mode]||'DOC';
+  const five=REF_FIVE.includes(mode);
+  const n=five?5:4;
+  const src=five?(inv.docNumber||''):(inv.ourRef||'');
+  const need=five?((CONFIG.docTypes[mode]||{}).numLabel||'Number'):'Our Reference';
+  const digits=String(src).replace(/\D/g,'');
+  const tail=digits.slice(-n);
+  const yr=(/^\d{4}/.test(inv.dateInvoice||''))?String(inv.dateInvoice).slice(0,4):String(new Date().getFullYear());
+  return {code,n,tail,yr,need,ok:digits.length>0};
+}
+function docRef(){const p=docRefParts();return '4P-'+p.code+'-'+p.yr+'-'+p.tail;}
+function custShort(){
+  const s=(inv.billName||'').trim().replace(/\s+/g,' ');
+  if(s.length<=30) return s;
+  const cut=s.slice(0,30), sp=cut.lastIndexOf(' ');
+  return (sp>=12?cut.slice(0,sp):cut).replace(/[\s·\-–—]+$/,'').trim();
+}
 function pdfFilename(){
-  const dt=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
-  const t=(dt.label||'Document').replace(/[—–]/g,'-');
-  const num=(inv.docNumber||'NO-REF').trim();
-  const who=(inv.billName||'Customer').trim();
-  const d=inv.dateInvoice||new Date().toISOString().slice(0,10);
-  return (t+' · '+num+' · '+who+' · '+d+'.pdf').replace(/[\/\\:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
+  const c=custShort();
+  return (docRef()+(c?' · '+c:'')+'.pdf').replace(/[\/\\:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
 }
 function buildDocHtml(){
   // Frozen, self-contained snapshot of the current document for server rendering.
@@ -1455,7 +1475,9 @@ function buildDocHtml(){
 }
 async function downloadServerPdf(btn){
   const dt=CONFIG.docTypes[inv.mode]||CONFIG.docTypes.proforma;
-  const headerRef=((dt.title||dt.label||'')+' · '+(inv.docNumber||'')).replace(/ · $/,'').trim();
+  const p=docRefParts();
+  if(!p.ok){alert('This '+(dt.label||'document')+' needs its '+p.need+' before it can be named and saved.\n\nAdd the '+p.need+' and try again.');return;}
+  const headerRef=((dt.title||dt.label||'')+' · '+docRef()).replace(/ · $/,'').trim();
   const fname=pdfFilename();
   const html=buildDocHtml();
   const old=btn?btn.textContent:'';
