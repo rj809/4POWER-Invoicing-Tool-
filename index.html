@@ -1514,15 +1514,18 @@ const SP_DRIVE='b!04HU4gxrs0eIHqzFlfYWZzLsdnfS4EZPmTkssG_iANRwMub9ULXgQaPmwtpdue
 const SP_FOLDER={quotation:'01RNPJ2XJXQTO5PW2VSRFISSBNKA4NUZ7O',proforma:'01RNPJ2XLIIOM72JGNLJGI77RVFF23HWCS',domestic:'01RNPJ2XMZMC5O3ML67ZHKYDA2HRUYU7HD',exportgoods:'01RNPJ2XKMKKQNO6AXEJHZ2BT224ZLDZYF',exportservices:'01RNPJ2XKMKKQNO6AXEJHZ2BT224ZLDZYF',packingslip:'01RNPJ2XIWKMFA7RWXOJAKTA6HRBJRQC3Q',deliverynote:'01RNPJ2XN6ZKQ6OHCCSZFZ7NNLYTQSIHVC',installation:'01RNPJ2XK7Q6GIKSAX5JHLWJPZGDBW32T6'};
 const SP_FOLDER_NAME={quotation:'Quotations',proforma:'Proformas',domestic:'Domestic Tax Invoices',exportgoods:'Export Invoices',exportservices:'Export Invoices',packingslip:'Packing Lists',deliverynote:'Delivery Notes',installation:'Installation Reports'};
 let _msal=null;
-async function getMsal(){
-  if(_msal) return _msal;
-  if(!(window.msal&&window.msal.PublicClientApplication)) throw new Error('Microsoft sign-in library has not loaded — check your connection and refresh the page.');
-  _msal=new msal.PublicClientApplication(MSAL_CONFIG);
-  await _msal.initialize();
-  return _msal;
+let _msalPromise=null;
+function getMsal(){
+  if(_msalPromise) return _msalPromise;
+  try{
+    if(!(window.msal&&window.msal.PublicClientApplication)) throw new Error('Microsoft sign-in library has not loaded — check your connection and refresh the page.');
+    const app=new msal.PublicClientApplication(MSAL_CONFIG);
+    _msalPromise=Promise.resolve(app.initialize()).then(function(){ _msal=app; return app; });
+    return _msalPromise;
+  }catch(e){ return Promise.reject(e); }
 }
 async function graphToken(){
-  const app=await getMsal();
+  const app=_msal||await getMsal();
   let acct=app.getActiveAccount()||app.getAllAccounts()[0];
   if(acct) app.setActiveAccount(acct);
   if(!acct){ const res=await app.loginPopup({scopes:GRAPH_SCOPES}); acct=res.account; app.setActiveAccount(acct); }
@@ -1546,8 +1549,8 @@ async function saveToRepository(btn){
   const old=btn?btn.textContent:''; const set=t=>{if(btn)btn.textContent=t;};
   if(btn) btn.disabled=true;
   try{
-    set('Rendering…'); const out=await renderPdfBlob();
     set('Signing in…'); const token=await graphToken();
+    set('Rendering…'); const out=await renderPdfBlob();
     set('Filing…'); const item=await graphUpload(out.blob,out.fname,folder,token);
     set('Filed ✓');
     alert('Filed to repository ✓\n\n'+out.fname+(item&&item.webUrl?('\n\n'+item.webUrl):''));
@@ -1557,6 +1560,7 @@ async function saveToRepository(btn){
     if(btn){btn.disabled=false;btn.textContent=old||'Save to repository';}
   }
 }
+getMsal().catch(function(){}); // pre-warm sign-in so the popup opens instantly on the first click
 init();
 </script>
 </body>
