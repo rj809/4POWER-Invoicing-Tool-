@@ -1,8 +1,20 @@
 # Netlify configuration — 4POWER Invoice Generator
-# Single static file; no build step required.
+# Static single file + serverless PDF render function.
 
 [build]
   publish = "."
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@sparticuz/chromium", "puppeteer-core"]
+
+# Allow time for Chromium cold start + render on first invocation.
+[functions."render-pdf"]
+  timeout = 26
 
 [[headers]]
   for = "/*"
