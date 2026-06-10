@@ -1440,17 +1440,19 @@ function init(){
 /* ---------------- server-side PDF (Download PDF) ---------------- */
 const RENDER_ENDPOINT='/.netlify/functions/render-pdf';
 // Reference scheme: 4P-<CODE>-<YYYY>-<TAIL>
-//  PI / INV  → 5-digit tail from the document's own number field (Proforma #, Invoice #)
-//  QT/PL/DN/IR → 4-digit tail from Our Reference (Bigin 4POWxxxx)
+//  INV (domestic + export) → 5-digit tail from the Invoice # field
+//  PI (proforma)           → 4-digit tail from the Proforma # field
+//  QT/PL/DN/IR             → 4-digit tail from Our Reference (Bigin 4POWxxxx)
 const REF_CODE={quotation:'QT',proforma:'PI',domestic:'INV',exportgoods:'INV',exportservices:'INV',packingslip:'PL',deliverynote:'DN',installation:'IR'};
-const REF_FIVE=['proforma','domestic','exportgoods','exportservices']; // five-digit, off own number field
+const REF_OWNNUM=['proforma','domestic','exportgoods','exportservices']; // tail off the document's own number field; the rest off Our Reference
+const REF_FIVE=['domestic','exportgoods','exportservices'];              // five-digit tail (invoices only); everything else is four
 function docRefParts(){
   const mode=inv.mode;
   const code=REF_CODE[mode]||'DOC';
-  const five=REF_FIVE.includes(mode);
-  const n=five?5:4;
-  const src=five?(inv.docNumber||''):(inv.ourRef||'');
-  const need=five?((CONFIG.docTypes[mode]||{}).numLabel||'Number'):'Our Reference';
+  const own=REF_OWNNUM.includes(mode);
+  const n=REF_FIVE.includes(mode)?5:4;
+  const src=own?(inv.docNumber||''):(inv.ourRef||'');
+  const need=own?((CONFIG.docTypes[mode]||{}).numLabel||'Number'):'Our Reference';
   const digits=String(src).replace(/\D/g,'');
   const tail=digits.slice(-n);
   const yr=(/^\d{4}/.test(inv.dateInvoice||''))?String(inv.dateInvoice).slice(0,4):String(new Date().getFullYear());
