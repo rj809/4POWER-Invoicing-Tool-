@@ -431,7 +431,7 @@ table.lines tbody tr.blank td{height:26px}
     <div class="eyebrow">Line items</div>
     <div class="items" id="items"></div>
     <div class="additm-row">
-      <button class="additm" onclick="openPicker()">+ Add from catalogue</button>
+      <button class="additm" onclick="openPickerNew()">+ Add from catalogue</button>
       <button class="additm additm-blank" onclick="addItem()">+ Blank line</button>
     </div>
 
@@ -934,7 +934,7 @@ function renderItems(){
       <div class="grid">
         <div class="fld"><label class="lbl">Part #</label><input value="${esc(it.part)}" oninput="setItem(${i},'part',this.value)"></div>
         <div class="fld"><label class="lbl">HSN Code</label><input value="${esc(it.hsn)}" oninput="setItem(${i},'hsn',this.value)"></div>
-        <div class="fld full"><label class="lbl">Description</label><div class="desc-wrap"><input value="${esc(it.desc)}" placeholder="Type a description, or browse the catalogue →" oninput="setItem(${i},'desc',this.value)"><button type="button" class="desc-cat" onclick="openPicker()" title="Browse catalogue" aria-label="Browse catalogue"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button></div></div>
+        <div class="fld full"><label class="lbl">Description</label><div class="desc-wrap"><input value="${esc(it.desc)}" placeholder="Type a description, or browse the catalogue →" oninput="setItem(${i},'desc',this.value)"><button type="button" class="desc-cat" onclick="openPicker(${i})" title="Browse catalogue" aria-label="Browse catalogue"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button></div></div>
         <div class="fld"><label class="lbl">Qty</label><input type="number" min="0" value="${it.qty}" oninput="setItem(${i},'qty',this.value)"></div>
         <div class="fld"><label class="lbl">Unit Price (USD)</label><input type="number" min="0" step="0.01" value="${it.price}" oninput="setItem(${i},'price',this.value)"></div>
         <div class="fld"><label class="lbl">Serial No. <span style="color:var(--mut);font-weight:400">(install)</span></label><input value="${esc(it.serial||'')}" oninput="setItem(${i},'serial',this.value)"></div>
@@ -953,21 +953,29 @@ function pkKey(o){return (o.part||'')+'||'+(o.desc||'')}
 function pkFindIdx(c){const k=pkKey(c);return inv.items.findIndex(it=>pkKey(it)===k && (it.desc||it.part))}
 function pkQty(c){const i=pkFindIdx(c);return i>=0?(parseFloat(inv.items[i].qty)||0):0}
 function pkFirstBlank(){return inv.items.findIndex(it=>!((''+(it.part||'')).trim())&&!((''+(it.desc||'')).trim())&&(!it.price||+it.price===0))}
-function openPicker(){const o=document.getElementById('pkOverlay');o.style.display='flex';const s=document.getElementById('pkSearch');s.value='';renderPicker('');updatePkCount();setTimeout(()=>s.focus(),30);document.addEventListener('keydown',pkEsc)}
-function closePicker(){document.getElementById('pkOverlay').style.display='none';document.removeEventListener('keydown',pkEsc)}
+let pkTarget=null;     // specific row index the picker should fill
+let pkAppended=false;  // whether openPickerNew appended a blank row we may need to clean up on cancel
+function _pkBlankRow(){return {part:'',desc:'',hsn:'',qty:1,price:0,serial:'',fam:'',tag:'',role:''}}
+function _pkIsBlank(it){return it&&!((''+(it.part||'')).trim())&&!((''+(it.desc||'')).trim())&&(!it.price||+it.price===0)}
+function _pkMk(c){return {part:c.part,desc:c.desc,hsn:c.hsn,qty:1,price:c.price,serial:'',fam:c.fam||'',tag:c.tag||'',role:c.role||''}}
+function _showPicker(){const o=document.getElementById('pkOverlay');o.style.display='flex';const s=document.getElementById('pkSearch');s.value='';renderPicker('');updatePkCount();setTimeout(()=>s.focus(),30);document.addEventListener('keydown',pkEsc)}
+function openPicker(target){pkTarget=(typeof target==='number')?target:null;pkAppended=false;_showPicker()}            // inline: fill this row
+function openPickerNew(){const b=pkFirstBlank();if(b>=0){pkTarget=b;pkAppended=false;}else{inv.items.push(_pkBlankRow());pkTarget=inv.items.length-1;pkAppended=true;renderItems();render();persist();}_showPicker()}   // big CTA: the next line
+function closePicker(){if(pkAppended&&pkTarget!=null&&_pkIsBlank(inv.items[pkTarget])){inv.items.splice(pkTarget,1);if(!inv.items.length)inv.items.push(_pkBlankRow());renderItems();render();persist();}pkTarget=null;pkAppended=false;document.getElementById('pkOverlay').style.display='none';document.removeEventListener('keydown',pkEsc)}
 function pkEsc(e){if(e.key==='Escape')closePicker()}
 function updatePkCount(){const el=document.getElementById('pkCount');if(el)el.textContent=inv.items.filter(it=>(it.desc||it.part)).length}
 function pickerAdd(ci){
-  const c=catalogue[ci];if(!c)return;const idx=pkFindIdx(c);
-  if(idx>=0){inv.items[idx].qty=(parseFloat(inv.items[idx].qty)||0)+1;}
-  else{const row={part:c.part,desc:c.desc,hsn:c.hsn,qty:1,price:c.price,serial:'',fam:c.fam||'',tag:c.tag||'',role:c.role||''};
-    const b=pkFirstBlank();if(b>=0)inv.items[b]=row;else inv.items.push(row);}
+  const c=catalogue[ci];if(!c)return;
+  if(pkTarget!=null&&_pkIsBlank(inv.items[pkTarget])){inv.items[pkTarget]=_pkMk(c);pkTarget=null;pkAppended=false;}
+  else{const idx=pkFindIdx(c);
+    if(idx>=0){inv.items[idx].qty=(parseFloat(inv.items[idx].qty)||0)+1;}
+    else{const b=pkFirstBlank();if(b>=0)inv.items[b]=_pkMk(c);else inv.items.push(_pkMk(c));}}
   renderItems();render();persist();renderPicker(document.getElementById('pkSearch').value);updatePkCount();
 }
 function pickerSet(ci,q){
   const c=catalogue[ci];if(!c)return;const idx=pkFindIdx(c);
   if(idx<0){if(q>0)pickerAdd(ci);return;}
-  if(q<=0){inv.items.splice(idx,1);if(!inv.items.length)inv.items.push({part:'',desc:'',hsn:'',qty:1,price:0,vat:0});}
+  if(q<=0){inv.items.splice(idx,1);if(!inv.items.length)inv.items.push(_pkBlankRow());}
   else inv.items[idx].qty=q;
   renderItems();render();persist();renderPicker(document.getElementById('pkSearch').value);updatePkCount();
 }
@@ -1007,7 +1015,8 @@ function renderPicker(filter){
 function pickerCustom(){
   const t=(document.getElementById('pkSearch').value||'').trim();if(!t)return;
   const row={part:'',desc:t,hsn:'',qty:1,price:0,serial:'',fam:'',tag:'',role:''};
-  const b=pkFirstBlank();if(b>=0)inv.items[b]=row;else inv.items.push(row);
+  if(pkTarget!=null&&_pkIsBlank(inv.items[pkTarget])){inv.items[pkTarget]=row;pkTarget=null;pkAppended=false;}
+  else{const b=pkFirstBlank();if(b>=0)inv.items[b]=row;else inv.items.push(row);}
   renderItems();render();persist();closePicker();
 }
 
