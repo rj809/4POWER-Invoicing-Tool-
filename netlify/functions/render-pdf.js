@@ -1,25 +1,23 @@
-// Server-side PDF render: posts the document's self-contained HTML, returns a
-// Chrome-rendered PDF matching the tool's print preview. The navy footer + page
-// numbers are injected via Puppeteer's footer mechanism, because the slim
-// headless-Chrome engine does not render CSS @page margin-box content.
+// Server-side PDF render. Chrome renders the document body (pixel-perfect), then
+// pdf-lib stamps the navy footer band + real page numbers onto every page —
+// because the slim Lambda Chromium renders neither @page margin boxes nor
+// Puppeteer footer templates.
 const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core');
+const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 
 const PACK = 'https://github.com/Sparticuz/chromium/releases/download/v123.0.1/chromium-v123.0.1-pack.tar';
 const ALLOW_ORIGIN = 'https://4pinvoice.netlify.app';
-
-// Navy footer band (replicates the @page @bottom-left/@bottom-right boxes).
-const FOOTER = `
-<div style="-webkit-print-color-adjust:exact;print-color-adjust:exact;width:100%;height:100%;margin:0;padding:0;font-family:'Poppins',Arial,Helvetica,sans-serif;">
-  <table style="width:100%;height:100%;border-collapse:collapse;background:#0B1C3E;color:#ffffff;"><tr>
-    <td style="padding:5mm 13mm;font-size:9px;line-height:1.7;text-align:left;vertical-align:middle;color:#ffffff;">
-      Thank you for your business!<br/>If you have any questions, please contact accounts@4power.biz.<br/>This is a computer-generated document and does not require a signature or stamp.<br/>&copy; 2026 4POWER Infocom FZ LLC&nbsp;&nbsp;&middot;&nbsp;&nbsp;www.4power.biz
-    </td>
-    <td style="padding:5mm 13mm;font-size:9px;text-align:right;vertical-align:bottom;white-space:nowrap;color:#ffffff;">
-      Page <span class="pageNumber"></span> of <span class="totalPages"></span>
-    </td>
-  </tr></table>
-</div>`;
+const MM = 2.834645; // pt per mm
+const NAVY = rgb(11 / 255, 28 / 255, 68 / 255);   // #0B1C3E
+const MUTED = rgb(138 / 255, 147 / 255, 162 / 255); // #8A93A2
+const WHITE = rgb(1, 1, 1);
+const FOOTLINES = [
+  'Thank you for your business!',
+  'If you have any questions, please contact accounts@4power.biz.',
+  'This is a computer-generated document and does not require a signature or stamp.',
+  '\u00A9 2026 4POWER Infocom FZ LLC   \u00B7   www.4power.biz'
+];
 
 exports.handler = async (event) => {
   const headers = {
@@ -30,19 +28,16 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: 'POST only' };
 
-  let html, filename;
+  let html, filename, headerRef;
   try {
     const b = JSON.parse(event.body || '{}');
     html = b.html;
     filename = (b.filename || 'document.pdf').replace(/[^\w.\- ]+/g, '');
+    headerRef = (b.headerRef || '').toString().slice(0, 120);
   } catch (e) {
     return { statusCode: 400, headers, body: 'invalid JSON' };
   }
   if (!html) return { statusCode: 400, headers, body: 'missing html' };
-
-  // Neutralise the document's @page margins so our page.pdf margins + footer control layout.
-  const fix = '<style>@media print{@page{margin:0 !important}}</style>';
-  const htmlFixed = html.includes('</head>') ? html.replace('</head>', fix + '</head>') : (fix + html);
 
   let browser;
   try {
@@ -53,21 +48,41 @@ exports.handler = async (event) => {
       headless: chromium.headless
     });
     const page = await browser.newPage();
-    await page.setContent(htmlFixed, { waitUntil: 'networkidle0', timeout: 20000 });
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      displayHeaderFooter: true,
-      headerTemplate: '<span style="font-size:0"></span>',
-      footerTemplate: FOOTER,
-      margin: { top: '8mm', right: '0mm', bottom: '32mm', left: '0mm' }
-    });
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 20000 });
+    // Body render honours the document's @page (A4, 32mm bottom margin reserved for the footer band).
+    const bodyPdf = await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true });
     await browser.close();
     browser = null;
+
+    // Stamp footer + page numbers with pdf-lib.
+    const doc = await PDFDocument.load(bodyPdf);
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const pages = doc.getPages();
+    const N = pages.length;
+    const bandH = 32 * MM;
+    const padX = 13 * MM;
+    pages.forEach((p, idx) => {
+      const { width, height } = p.getSize();
+      // navy band
+      p.drawRectangle({ x: 0, y: 0, width, height: bandH, color: NAVY });
+      // left text block, top-aligned within the band
+      let y = bandH - 5 * MM - 8;
+      const size = 8, lh = size * 1.7;
+      FOOTLINES.forEach((ln, i) => p.drawText(ln, { x: padX, y: y - i * lh, size, font, color: WHITE }));
+      // page number, bottom-right
+      const pn = 'Page ' + (idx + 1) + ' of ' + N;
+      const pw = font.widthOfTextAtSize(pn, size);
+      p.drawText(pn, { x: width - padX - pw, y: 7 * MM, size, font, color: WHITE });
+      // continuation reference, top-left on pages after the first
+      if (idx > 0 && headerRef) {
+        p.drawText(headerRef, { x: padX, y: height - 11 * MM, size: 7.5, font, color: MUTED });
+      }
+    });
+    const out = await doc.save();
     return {
       statusCode: 200,
       headers: { ...headers, 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${filename}"` },
-      body: Buffer.from(pdf).toString('base64'),
+      body: Buffer.from(out).toString('base64'),
       isBase64Encoded: true
     };
   } catch (e) {

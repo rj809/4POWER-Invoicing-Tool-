@@ -5,6 +5,7 @@
   "description": "4POWER Invoice Generator — static tool + serverless PDF render",
   "dependencies": {
     "@sparticuz/chromium": "123.0.1",
-    "puppeteer-core": "22.6.5"
+    "puppeteer-core": "22.6.5",
+    "pdf-lib": "1.17.1"
   }
 }
