@@ -561,6 +561,7 @@ const CONFIG={
   docTypes:{
     quotation:    { label:"Quotation",            title:"QUOTATION",                numLabel:"Quotation #",     footWord:"quotation",            dateLabel:"Date",            showSupply:false, pricing:true,  vatRate:0, decl:null,             cif:false, signoff:false, noNumber:true, logStage:{pipeline:"Quotations",stage:"Submit Quotation"} },
     proforma:     { label:"Proforma",             title:"PROFORMA INVOICE",         numLabel:"Proforma #",      footWord:"proforma",             dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, vatLabel:"OOS", decl:true, nature:"goods", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
+    exportproforma:{ label:"Proforma Invoice — Export (CIF)", title:"PROFORMA INVOICE", numLabel:"Proforma #", footWord:"proforma", dateLabel:"Date of Invoice", showSupply:false, pricing:true, vatRate:0, decl:true, nature:"goods", cif:true, signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
     domestic:     { label:"Domestic Tax Invoice", title:"TAX INVOICE",              numLabel:"Invoice #",       footWord:"tax invoice",          dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:5, decl:true, nature:"goods",       cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
     exportgoods:  { label:"Export Invoice — Goods",title:"EXPORT INVOICE",          numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, decl:true, nature:"goods",    cif:true,  signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
     exportservices:{label:"Export Invoice — Services",title:"EXPORT INVOICE",       numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, decl:true, nature:"services", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
@@ -1505,8 +1506,8 @@ const RENDER_ENDPOINT='/.netlify/functions/render-pdf';
 //  INV (domestic + export) → 5-digit tail from the Invoice # field
 //  PI (proforma)           → 4-digit tail from the Proforma # field
 //  QT/PL/DN/IR             → 4-digit tail from Our Reference (Bigin 4POWxxxx)
-const REF_CODE={quotation:'QT',proforma:'PI',domestic:'INV',exportgoods:'INV',exportservices:'INV',packingslip:'PL',deliverynote:'DN',installation:'IR'};
-const REF_OWNNUM=['proforma','domestic','exportgoods','exportservices']; // tail off the document's own number field; the rest off Our Reference
+const REF_CODE={quotation:'QT',proforma:'PI',exportproforma:'PI',domestic:'INV',exportgoods:'INV',exportservices:'INV',packingslip:'PL',deliverynote:'DN',installation:'IR'};
+const REF_OWNNUM=['proforma','exportproforma','domestic','exportgoods','exportservices']; // tail off the document's own number field; the rest off Our Reference
 const REF_FIVE=['domestic','exportgoods','exportservices'];              // five-digit tail (invoices only); everything else is four
 function docRefParts(){
   const mode=inv.mode;
@@ -1573,8 +1574,8 @@ const MSAL_CONFIG={auth:{clientId:'3db760f3-fa99-4d1a-8d7c-16d51911133e',authori
 const GRAPH_SCOPES=['Sites.ReadWrite.All'];
 const SP_DRIVE='b!04HU4gxrs0eIHqzFlfYWZzLsdnfS4EZPmTkssG_iANRwMub9ULXgQaPmwtpdueV-';
 // Mode → SharePoint folder itemId (Issued Documents / 2026 / <Type>). Both export types file together.
-const SP_FOLDER={quotation:'01RNPJ2XJXQTO5PW2VSRFISSBNKA4NUZ7O',proforma:'01RNPJ2XLIIOM72JGNLJGI77RVFF23HWCS',domestic:'01RNPJ2XMZMC5O3ML67ZHKYDA2HRUYU7HD',exportgoods:'01RNPJ2XKMKKQNO6AXEJHZ2BT224ZLDZYF',exportservices:'01RNPJ2XKMKKQNO6AXEJHZ2BT224ZLDZYF',packingslip:'01RNPJ2XIWKMFA7RWXOJAKTA6HRBJRQC3Q',deliverynote:'01RNPJ2XN6ZKQ6OHCCSZFZ7NNLYTQSIHVC',installation:'01RNPJ2XK7Q6GIKSAX5JHLWJPZGDBW32T6'};
-const SP_FOLDER_NAME={quotation:'Quotations',proforma:'Proformas',domestic:'Domestic Tax Invoices',exportgoods:'Export Invoices',exportservices:'Export Invoices',packingslip:'Packing Lists',deliverynote:'Delivery Notes',installation:'Installation Reports'};
+const SP_FOLDER={quotation:'01RNPJ2XJXQTO5PW2VSRFISSBNKA4NUZ7O',proforma:'01RNPJ2XLIIOM72JGNLJGI77RVFF23HWCS',exportproforma:'01RNPJ2XLIIOM72JGNLJGI77RVFF23HWCS',domestic:'01RNPJ2XMZMC5O3ML67ZHKYDA2HRUYU7HD',exportgoods:'01RNPJ2XKMKKQNO6AXEJHZ2BT224ZLDZYF',exportservices:'01RNPJ2XKMKKQNO6AXEJHZ2BT224ZLDZYF',packingslip:'01RNPJ2XIWKMFA7RWXOJAKTA6HRBJRQC3Q',deliverynote:'01RNPJ2XN6ZKQ6OHCCSZFZ7NNLYTQSIHVC',installation:'01RNPJ2XK7Q6GIKSAX5JHLWJPZGDBW32T6'};
+const SP_FOLDER_NAME={quotation:'Quotations',proforma:'Proformas',exportproforma:'Proformas',domestic:'Domestic Tax Invoices',exportgoods:'Export Invoices',exportservices:'Export Invoices',packingslip:'Packing Lists',deliverynote:'Delivery Notes',installation:'Installation Reports'};
 let _msal=null;
 let _msalPromise=null;
 function getMsal(){
