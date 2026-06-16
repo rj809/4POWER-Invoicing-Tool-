@@ -12,12 +12,10 @@ const MM = 2.834645; // pt per mm
 const NAVY = rgb(11 / 255, 28 / 255, 68 / 255);   // #0B1C3E
 const MUTED = rgb(138 / 255, 147 / 255, 162 / 255); // #8A93A2
 const WHITE = rgb(1, 1, 1);
-const FOOTLINES = [
-  'Thank you for your business!',
-  'If you have any questions, please contact accounts@4power.biz.',
-  'This is a computer-generated document and does not require a signature or stamp.',
-  '\u00A9 2026 4POWER Infocom FZ LLC   \u00B7   www.4power.biz'
-];
+const FOOT_TY = 'Thank you for your business!';
+const FOOT_Q = 'If you have any questions, please contact accounts@4power.biz.';
+const FOOT_NOSIG = 'This is a computer-generated document and does not require a signature or stamp.';
+const FOOT_CP = '\u00A9 2026 4POWER Infocom FZ LLC   \u00B7   www.4power.biz';
 
 exports.handler = async (event) => {
   const headers = {
@@ -28,12 +26,13 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: 'POST only' };
 
-  let html, filename, headerRef;
+  let html, filename, headerRef, signoff;
   try {
     const b = JSON.parse(event.body || '{}');
     html = b.html;
     filename = (b.filename || 'document.pdf').replace(/[^\w.\- ]+/g, '');
     headerRef = (b.headerRef || '').toString().slice(0, 120);
+    signoff = !!b.signoff;
   } catch (e) {
     return { statusCode: 400, headers, body: 'invalid JSON' };
   }
@@ -61,6 +60,9 @@ exports.handler = async (event) => {
     const N = pages.length;
     const bandH = 32 * MM;
     const padX = 13 * MM;
+    // Signoff documents (installation report, packing slip, delivery note) collect a wet signature,
+    // so the "computer-generated / no signature" line is omitted for them.
+    const footlines = signoff ? [FOOT_TY, FOOT_Q, FOOT_CP] : [FOOT_TY, FOOT_Q, FOOT_NOSIG, FOOT_CP];
     pages.forEach((p, idx) => {
       const { width, height } = p.getSize();
       // navy band
@@ -68,7 +70,7 @@ exports.handler = async (event) => {
       // left text block, top-aligned within the band
       let y = bandH - 5 * MM - 8;
       const size = 8, lh = size * 1.7;
-      FOOTLINES.forEach((ln, i) => p.drawText(ln, { x: padX, y: y - i * lh, size, font, color: WHITE }));
+      footlines.forEach((ln, i) => p.drawText(ln, { x: padX, y: y - i * lh, size, font, color: WHITE }));
       // page number, bottom-right
       const pn = 'Page ' + (idx + 1) + ' of ' + N;
       const pw = font.widthOfTextAtSize(pn, size);

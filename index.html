@@ -215,8 +215,9 @@ table.lines tbody .li-sub{font-size:8px;font-weight:500;color:var(--mut);margin-
 table.lines tbody tr.blank td{height:26px}
 .col-no{width:24px}.col-qty{width:30px}
 .signoff{display:grid;grid-template-columns:1fr 1fr;gap:30px;padding-top:4px}
-.signoff .so .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:3px 9px;margin-bottom:16px}
-.signoff .soline{border-top:1px solid var(--bd);padding:5px 0 16px;font-size:9px;color:var(--mut)}
+.signoff .so .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:3px 9px;margin-bottom:10px}
+.signoff .soline{border-top:1px solid var(--bd);margin-top:26px;padding-top:4px;font-size:8.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.signoff .soline.sig{margin-top:46px}
 .col-ser{width:110px}
 .checklist .h{display:inline-block;background:var(--cream);font-weight:500;font-size:10px;color:var(--navy);padding:3px 9px;margin-bottom:8px}
 .checklist .ck{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:10px;color:var(--navy)}
@@ -548,12 +549,13 @@ const CONFIG={
       "Delivery date confirmed"
     ]},
     install:{ title:"Installation Checklist", items:[
-      "Unit unpacked and inspected — no transit damage",
-      "Powered on; self-test completed successfully",
-      "Cash acceptance and dispensing verified",
-      "Connectivity to CBS / network confirmed",
+      "Equipment / software received and inspected — complete and undamaged",
+      "Installed / deployed and powered on; self-test or start-up completed",
+      "Core function verified (cash accept/dispense, token issue, or transaction as applicable)",
+      "Connectivity to CBS / network / server confirmed",
+      "Configuration and settings applied per requirement",
       "Customer staff trained on operation",
-      "Site cleaned and unit handed over to customer"
+      "Site cleaned; unit / system handed over and accepted by customer"
     ]}
   },
   /* Document types — the engine. Add a type here and it appears in the switcher.
@@ -855,8 +857,8 @@ function renderSimpleDoc(dt,c){
   const totQty=filled.reduce((s,r)=>s+(parseFloat(r.qty)||0),0);
   let signoff='';
   if(dt.signoff)signoff=`<div class="signoff">
-      <div class="so"><div class="h">${dt.signLeft||'Issued by'}</div><div class="soline">Name</div><div class="soline">Signature</div><div class="soline">Date</div></div>
-      <div class="so"><div class="h">${dt.signRight||'Received by'}</div><div class="soline">Name</div><div class="soline">Signature</div><div class="soline">Date</div></div>
+      <div class="so"><div class="h">${dt.signLeft||'Issued by'}</div><div class="soline">Name</div><div class="soline">Date</div><div class="soline sig">Signature</div></div>
+      <div class="so"><div class="h">${dt.signRight||'Received by'}</div><div class="soline">Name</div><div class="soline">Date</div><div class="soline sig">Signature</div></div>
     </div><div class="rule"></div>`;
   let checklist='';
   const clKey=dt.checklist, cl=clKey&&CONFIG.checklists&&CONFIG.checklists[clKey];
@@ -1547,7 +1549,7 @@ async function renderPdfBlob(){
   const headerRef=((dt.title||dt.label||'')+' · '+docRef()).replace(/ · $/,'').trim();
   const fname=pdfFilename();
   const html=buildDocHtml();
-  const r=await fetch(RENDER_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({html,filename:fname,headerRef})});
+  const r=await fetch(RENDER_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({html,filename:fname,headerRef,signoff:!!dt.signoff})});
   if(!r.ok){const t=await r.text().catch(()=>'');throw new Error('Render failed ('+r.status+') '+t.slice(0,180));}
   return {blob:await r.blob(),fname};
 }
