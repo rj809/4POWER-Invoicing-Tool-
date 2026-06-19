@@ -386,7 +386,7 @@ table.lines tbody tr.blank td{height:26px}
     </label>
     <label class="chk" id="aedWrap" style="display:none">
       <input type="checkbox" id="aedChk" onchange="toggleAedOnly(this.checked)">
-      <span><b>AED only</b> — hide USD conversion <span style="color:var(--mut)">(domestic invoice priced in dirhams)</span></span>
+      <span><b>AED only</b> — hide USD conversion <span style="color:var(--mut)">(price this document in dirhams)</span></span>
     </label>
 
     </section>
@@ -613,10 +613,10 @@ const CONFIG={
   /* Document types — the engine. Add a type here and it appears in the switcher.
      logStage = where the linked Bigin deal moves when this doc is logged (null = no move). */
   docTypes:{
-    quotation:    { label:"Quotation",            title:"QUOTATION",                numLabel:"Quotation #",     footWord:"quotation",            dateLabel:"Date",            showSupply:false, pricing:true,  vatRate:0, decl:null,             cif:false, signoff:false, noNumber:true, logStage:{pipeline:"Quotations",stage:"Submit Quotation"} },
-    proforma:     { label:"Proforma",             title:"PROFORMA INVOICE",         numLabel:"Proforma #",      footWord:"proforma",             dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, vatLabel:"OOS", decl:true, nature:"goods", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
+    quotation:    { label:"Quotation",            title:"QUOTATION",                numLabel:"Quotation #",     footWord:"quotation",            dateLabel:"Date",            showSupply:false, pricing:true,  vatRate:0, decl:null,             cif:false, signoff:false, aedOpt:true, noNumber:true, logStage:{pipeline:"Quotations",stage:"Submit Quotation"} },
+    proforma:     { label:"Proforma",             title:"PROFORMA INVOICE",         numLabel:"Proforma #",      footWord:"proforma",             dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, vatLabel:"OOS", aedOpt:true, decl:true, nature:"goods", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
     exportproforma:{ label:"Export Proforma", title:"PROFORMA INVOICE", numLabel:"Proforma #", footWord:"proforma", dateLabel:"Date of Invoice", showSupply:false, pricing:true, vatRate:0, decl:true, nature:"goods", cif:true, signoff:false, logStage:{pipeline:"Orders",stage:"Order Received"} },
-    domestic:     { label:"Domestic Tax Invoice", title:"TAX INVOICE",              numLabel:"Invoice #",       footWord:"tax invoice",          dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:5, decl:true, nature:"goods",       cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
+    domestic:     { label:"Domestic Tax Invoice", title:"TAX INVOICE",              numLabel:"Invoice #",       footWord:"tax invoice",          dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:5, aedOpt:true, decl:true, nature:"goods",       cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
     exportgoods:  { label:"Export Invoice — Goods",title:"EXPORT INVOICE",          numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, decl:true, nature:"goods",    cif:true,  signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
     exportservices:{label:"Export Invoice — Services",title:"EXPORT INVOICE",       numLabel:"Invoice #",       footWord:"export invoice",       dateLabel:"Date of Invoice", showSupply:false,  pricing:true,  vatRate:0, decl:true, nature:"services", cif:false, signoff:false, logStage:{pipeline:"Orders",stage:"Payment Outstanding"} },
     packingslip:{label:"Packing Slip",title:"PACKING SLIP",    numLabel:"Packing Slip #",  footWord:"packing slip",  dateLabel:"Date",            showSupply:false, pricing:false, signoff:true,  checklist:"packing",  signLeft:"Packed by", signRight:"Received by", logStage:null },
@@ -766,7 +766,7 @@ function render(){
   if(!dtR.pricing){renderSimpleDoc(dtR,c);return;}
   const filled=c.rows.filter(r=>r.filled);
   const minRows=Math.max(0,2-filled.length);
-  const aed=inv.mode==='domestic'&&!!inv.aedOnly;
+  const aed=aedEligible(inv.mode)&&!!inv.aedOnly;
   let body='';let n=0;
   filled.forEach(r=>{n++;
     const sub=[ (r.part&&r.part!=='-')?('Part&nbsp;#&nbsp;'+esc(r.part)):'', (r.hsn&&r.hsn!=='-')?('HSN&nbsp;Code&nbsp;'+esc(r.hsn)):'' ].filter(Boolean).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
@@ -1008,7 +1008,7 @@ function validate(){
   const lines=c.rows.filter(r=>r.filled);
   if(lines.length===0)it.push('At least one line item is required');
   if(lines.some(r=>!(parseFloat(r.qty)>0)))it.push('Every line needs a quantity greater than zero');
-  if(!(inv.mode==='domestic'&&inv.aedOnly)&&!(parseFloat(inv.rate)>0))it.push('A USD → AED rate is required');
+  if(!(aedEligible(inv.mode)&&inv.aedOnly)&&!(parseFloat(inv.rate)>0))it.push('A USD → AED rate is required');
   return it;
 }
 
@@ -1408,10 +1408,11 @@ function syncCompanionChk(){
 }
 // AED-only mode (domestic only) — hide USD conversion
 function toggleAedOnly(on){inv.aedOnly=!!on;syncAedChk();render();persist();}
+function aedEligible(m){const d=CONFIG.docTypes[m];return !!(d&&d.aedOpt);}
 function syncAedChk(){
   const wrap=document.getElementById('aedWrap'),chk=document.getElementById('aedChk');
   if(!wrap||!chk)return;
-  const show=inv.mode==='domestic';
+  const show=aedEligible(inv.mode);
   wrap.style.display=show?'':'none';
   chk.checked=!!inv.aedOnly;
   const rl=document.getElementById('rateFld');if(rl)rl.style.display=(show&&inv.aedOnly)?'none':'';
